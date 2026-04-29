@@ -31,6 +31,49 @@ own active user/reporting loop, or until the upstream community has moved over.
    `uv run pytest`.
 7. Record the upstream PR/issue number in the commit message.
 
+## Fresh Session Prompt
+
+Use this when starting a future maintenance session:
+
+```text
+Review current pull requests and issues in Alishahryar1/free-claude-code against
+this repository. Use UPSTREAM_AUDIT_PLAN.md as the maintenance workflow. Classify
+each relevant item as apply/adapt/backlog/skip, then implement only the safest
+focused batch with tests. Keep this fork's provider registry descriptor-driven,
+preserve existing retry semantics, and run the repo checks before summarizing.
+```
+
+Before implementation, refresh the upstream list instead of trusting the last
+recorded candidates. Issues and PRs can change state, receive better repros, or
+be superseded by newer work.
+
+## Upstream Attribution And Notifications
+
+- Keep upstream PR/issue numbers in commit messages and changelog-style notes.
+- Preserve direct attribution in summaries when a local change is based on a
+  specific upstream PR or issue.
+- Do not spam upstream authors on every adapted implementation.
+- It is reasonable to comment upstream when the local implementation materially
+  helps the original reporter or author, especially for open issues. Keep the
+  comment factual: link the commit/PR in this fork, state whether it was copied
+  or adapted, and mention any behavior differences.
+- Avoid implying ownership of the upstream project or asking users to migrate.
+  If a user asks where a fix exists, point them to the relevant commit or release
+  in this fork.
+
+## CI Expectations
+
+GitHub Actions should continue to enforce:
+
+- no `# type: ignore` / `# ty: ignore` suppressions
+- `uv run ruff format --check`
+- `uv run ruff check`
+- `uv run ty check`
+- `uv run pytest`
+
+If the workflow changes, update this section and `AGENTS.md` / `CLAUDE.md`
+together.
+
 ## Current Candidates
 
 ### Apply
