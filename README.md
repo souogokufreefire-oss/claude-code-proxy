@@ -369,12 +369,12 @@ Raw logging flags can expose prompts, tool arguments, paths, and model output. K
 ### Local Web Tools
 
 ```dotenv
-ENABLE_WEB_SERVER_TOOLS=true
+ENABLE_WEB_SERVER_TOOLS=false
 WEB_FETCH_ALLOWED_SCHEMES=http,https
 WEB_FETCH_ALLOW_PRIVATE_NETWORKS=false
 ```
 
-These tools perform outbound HTTP from the proxy. Keep private-network access disabled unless you are in a controlled lab environment.
+These tools perform outbound HTTP from the proxy for forced Anthropic `web_search` / `web_fetch` server tools. Keep them disabled unless you explicitly want the proxy to make network requests on behalf of clients. Keep private-network access disabled unless you are in a controlled lab environment; allowing private targets can create SSRF exposure.
 
 ## Troubleshooting
 

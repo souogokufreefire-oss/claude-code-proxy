@@ -53,6 +53,16 @@ def test_root_env_example_is_packaged_for_fcc_init() -> None:
     assert force_include[".env.example"] == "cli/env.example"
 
 
+def test_local_web_tools_are_documented_as_disabled_by_default() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    env_text = (repo_root / ".env.example").read_text(encoding="utf-8")
+    readme_text = (repo_root / "README.md").read_text(encoding="utf-8")
+
+    assert "ENABLE_WEB_SERVER_TOOLS=false" in env_text
+    assert "ENABLE_WEB_SERVER_TOOLS=false" in readme_text
+    assert "SSRF" in readme_text
+
+
 def test_pyproject_first_party_packages_match_packaged_roots() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     pyproject = (repo_root / "pyproject.toml").read_text(encoding="utf-8")
