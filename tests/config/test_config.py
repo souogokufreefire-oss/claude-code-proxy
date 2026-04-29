@@ -128,6 +128,24 @@ class TestSettings:
         assert settings.provider_retry_base_delay == 3.5
         assert settings.provider_retry_max_delay == 90.0
 
+    def test_provider_api_key_lists_from_env(self, monkeypatch):
+        """Fallback API key lists accept comma or whitespace separated values."""
+        from config.settings import Settings
+
+        monkeypatch.setenv("OPENROUTER_API_KEYS", "or-1, or-2 or-3")
+        monkeypatch.setenv("OPENROUTER_KEY_USAGE_LIMIT", "25")
+        settings = Settings()
+
+        assert settings.open_router_api_keys == ("or-1", "or-2", "or-3")
+        assert settings.open_router_key_usage_limit == 25
+
+    def test_provider_key_usage_limit_rejects_negative(self, monkeypatch):
+        from config.settings import Settings
+
+        monkeypatch.setenv("NVIDIA_NIM_KEY_USAGE_LIMIT", "-1")
+        with pytest.raises(ValidationError, match="key usage limits"):
+            Settings()
+
     def test_http_read_timeout_from_env(self, monkeypatch):
         """HTTP_READ_TIMEOUT env var is loaded into settings."""
         from config.settings import Settings

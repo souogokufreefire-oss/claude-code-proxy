@@ -12,6 +12,7 @@ from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 import httpx
+import openai
 from loguru import logger
 from openai import AsyncOpenAI
 
@@ -28,6 +29,7 @@ from providers.error_mapping import (
     map_error,
     user_visible_message_for_mapped_provider_error,
 )
+from providers.key_pool import ApiKeyPool
 from providers.rate_limit import GlobalRateLimiter
 
 
@@ -68,7 +70,8 @@ class OpenAIChatTransport(BaseProvider):
     ):
         super().__init__(config)
         self._provider_name = provider_name
-        self._api_key = api_key
+        self._key_pool = ApiKeyPool(config.api_keys, usage_limit=config.key_usage_limit)
+        self._api_key = self._key_pool.active_key or api_key
         self._base_url = base_url.rstrip("/")
         self._global_rate_limiter = GlobalRateLimiter.get_scoped_instance(
             provider_name.lower(),
@@ -125,8 +128,37 @@ class OpenAIChatTransport(BaseProvider):
         """Return a modified request body for one retry, or None."""
         return None
 
+    def _set_api_key(self, api_key: str) -> None:
+        self._api_key = api_key
+        self._client.api_key = api_key
+
+    def _rotate_api_key_after_failure(self) -> bool:
+        if not self._key_pool.has_fallbacks():
+            return False
+        next_key = self._key_pool.rotate_after_failure(self._api_key)
+        if next_key is None:
+            return False
+        logger.warning(
+            "{} key rotation after key-scoped upstream error", self._provider_name
+        )
+        self._set_api_key(next_key)
+        return True
+
+    def _record_api_key_success(self) -> None:
+        self._key_pool.mark_used(self._api_key)
+        next_key = self._key_pool.rotate_if_exhausted(self._api_key)
+        if next_key is not None:
+            self._set_api_key(next_key)
+
+    @staticmethod
+    def _is_key_scoped_error(error: Exception) -> bool:
+        return isinstance(error, (openai.AuthenticationError, openai.RateLimitError))
+
     async def _create_stream(self, body: dict) -> tuple[Any, dict]:
         """Create a streaming chat completion, optionally retrying once."""
+        if self._key_pool.has_fallbacks():
+            return await self._create_stream_with_key_fallback(body)
+
         try:
             stream = await self._global_rate_limiter.execute_with_retry(
                 self._client.chat.completions.create, **body, stream=True
@@ -141,6 +173,39 @@ class OpenAIChatTransport(BaseProvider):
                 self._client.chat.completions.create, **retry_body, stream=True
             )
             return stream, retry_body
+
+    async def _create_stream_with_key_fallback(self, body: dict) -> tuple[Any, dict]:
+        last_error: Exception | None = None
+        while True:
+            try:
+                stream = await self._global_rate_limiter.execute_with_retry(
+                    self._client.chat.completions.create,
+                    **body,
+                    stream=True,
+                    max_retries=0,
+                )
+                self._record_api_key_success()
+                return stream, body
+            except Exception as error:
+                retry_body = self._get_retry_request_body(error, body)
+                if retry_body is not None:
+                    try:
+                        stream = await self._global_rate_limiter.execute_with_retry(
+                            self._client.chat.completions.create,
+                            **retry_body,
+                            stream=True,
+                            max_retries=0,
+                        )
+                        self._record_api_key_success()
+                        return stream, retry_body
+                    except Exception as retry_error:
+                        error = retry_error
+
+                if not self._is_key_scoped_error(error):
+                    raise error
+                last_error = error
+                if not self._rotate_api_key_after_failure():
+                    raise last_error from error
 
     def _emit_tool_arg_delta(
         self, sse: SSEBuilder, tc_index: int, args: str

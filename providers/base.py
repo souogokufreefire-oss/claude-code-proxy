@@ -17,6 +17,8 @@ class ProviderConfig(BaseModel):
     """
 
     api_key: str
+    api_keys: tuple[str, ...] = ()
+    key_usage_limit: int = 0
     base_url: str | None = None
     rate_limit: int | None = None
     rate_window: int = 60

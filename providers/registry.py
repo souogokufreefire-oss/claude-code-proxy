@@ -81,11 +81,31 @@ def _string_attr(settings: Settings, attr_name: str | None, default: str = "") -
     return value if isinstance(value, str) else default
 
 
+def _string_tuple_attr(settings: Settings, attr_name: str | None) -> tuple[str, ...]:
+    if attr_name is None:
+        return ()
+    value = getattr(settings, attr_name, ())
+    if not isinstance(value, tuple):
+        return ()
+    return tuple(part for part in value if isinstance(part, str) and part.strip())
+
+
+def _int_attr(settings: Settings, attr_name: str | None, default: int = 0) -> int:
+    if attr_name is None:
+        return default
+    value = getattr(settings, attr_name, default)
+    return value if isinstance(value, int) else default
+
+
 def _credential_for(descriptor: ProviderDescriptor, settings: Settings) -> str:
     if descriptor.static_credential is not None:
         return descriptor.static_credential
     if descriptor.credential_attr:
-        return _string_attr(settings, descriptor.credential_attr)
+        credential = _string_attr(settings, descriptor.credential_attr)
+        if credential:
+            return credential
+        fallbacks = _string_tuple_attr(settings, descriptor.credential_list_attr)
+        return fallbacks[0] if fallbacks else ""
     return ""
 
 
@@ -100,6 +120,18 @@ def _require_credential(descriptor: ProviderDescriptor, credential: str) -> None
     raise AuthenticationError(message)
 
 
+def _credential_fallbacks(
+    descriptor: ProviderDescriptor, settings: Settings, primary: str
+) -> tuple[str, ...]:
+    configured = _string_tuple_attr(settings, descriptor.credential_list_attr)
+    keys: list[str] = []
+    for key in (primary, *configured):
+        stripped = key.strip()
+        if stripped and stripped not in keys:
+            keys.append(stripped)
+    return tuple(keys)
+
+
 def build_provider_config(
     descriptor: ProviderDescriptor, settings: Settings
 ) -> ProviderConfig:
@@ -109,8 +141,11 @@ def build_provider_config(
         settings, descriptor.base_url_attr, descriptor.default_base_url or ""
     )
     proxy = _string_attr(settings, descriptor.proxy_attr)
+    api_keys = _credential_fallbacks(descriptor, settings, credential)
     return ProviderConfig(
         api_key=credential,
+        api_keys=api_keys if len(api_keys) > 1 else (),
+        key_usage_limit=_int_attr(settings, descriptor.key_usage_limit_attr),
         base_url=base_url or descriptor.default_base_url,
         rate_limit=settings.provider_rate_limit,
         rate_window=settings.provider_rate_window,

@@ -321,12 +321,24 @@ Blank per-tier values inherit the fallback. Blank thinking overrides inherit `EN
 
 ```dotenv
 NVIDIA_NIM_API_KEY=""
+NVIDIA_NIM_API_KEYS=""
+NVIDIA_NIM_KEY_USAGE_LIMIT=0
 OPENROUTER_API_KEY=""
+OPENROUTER_API_KEYS=""
+OPENROUTER_KEY_USAGE_LIMIT=0
 DEEPSEEK_API_KEY=""
+DEEPSEEK_API_KEYS=""
+DEEPSEEK_KEY_USAGE_LIMIT=0
 LM_STUDIO_BASE_URL="http://localhost:1234/v1"
 LLAMACPP_BASE_URL="http://localhost:8080/v1"
 OLLAMA_BASE_URL="http://localhost:11434"
 ```
+
+Hosted providers can use fallback keys with comma or whitespace separated
+`*_API_KEYS` values. `*_KEY_USAGE_LIMIT=0` disables proactive per-key rotation;
+set a positive number to rotate after that many successful requests. On
+key-scoped 401/429 failures, the proxy rotates to the next configured key before
+returning an upstream error.
 
 Proxy settings are per provider:
 

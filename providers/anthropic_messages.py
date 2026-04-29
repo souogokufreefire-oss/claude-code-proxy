@@ -26,6 +26,7 @@ from providers.error_mapping import (
     map_error,
     user_visible_message_for_mapped_provider_error,
 )
+from providers.key_pool import ApiKeyPool
 from providers.rate_limit import GlobalRateLimiter
 
 StreamChunkMode = Literal["line", "event"]
@@ -45,7 +46,8 @@ class AnthropicMessagesTransport(BaseProvider):
     ):
         super().__init__(config)
         self._provider_name = provider_name
-        self._api_key = config.api_key
+        self._key_pool = ApiKeyPool(config.api_keys, usage_limit=config.key_usage_limit)
+        self._api_key = self._key_pool.active_key or config.api_key
         self._base_url = (config.base_url or default_base_url).rstrip("/")
         self._global_rate_limiter = GlobalRateLimiter.get_scoped_instance(
             provider_name.lower(),
@@ -88,13 +90,29 @@ class AnthropicMessagesTransport(BaseProvider):
 
     async def _send_stream_request(self, body: dict) -> httpx.Response:
         """Create a streaming messages response."""
-        request = self._client.build_request(
-            "POST",
-            "/messages",
-            json=body,
-            headers=self._request_headers(),
-        )
-        return await self._client.send(request, stream=True)
+        while True:
+            request = self._client.build_request(
+                "POST",
+                "/messages",
+                json=body,
+                headers=self._request_headers(),
+            )
+            response = await self._client.send(request, stream=True)
+            if (
+                response.status_code not in (401, 429)
+                or not self._key_pool.has_fallbacks()
+            ):
+                return response
+            next_key = self._key_pool.rotate_after_failure(self._api_key)
+            if next_key is None:
+                return response
+            await response.aclose()
+            logger.warning(
+                "{} key rotation after upstream status={}",
+                self._provider_name,
+                response.status_code,
+            )
+            self._api_key = next_key
 
     async def _raise_for_status(
         self, response: httpx.Response, *, req_tag: str
@@ -321,6 +339,9 @@ class AnthropicMessagesTransport(BaseProvider):
                 response = await self._global_rate_limiter.execute_with_retry(
                     _validated_stream_send
                 )
+                self._key_pool.mark_used(self._api_key)
+                if next_key := self._key_pool.rotate_if_exhausted(self._api_key):
+                    self._api_key = next_key
 
                 async for chunk in self._iter_stream_chunks(
                     response,

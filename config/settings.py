@@ -1,14 +1,15 @@
 """Centralized configuration using Pydantic Settings."""
 
 import os
+import re
 from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from dotenv import dotenv_values
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from .constants import HTTP_CONNECT_TIMEOUT_DEFAULT
 from .nim import NimSettings
@@ -99,12 +100,30 @@ class Settings(BaseSettings):
 
     # ==================== OpenRouter Config ====================
     open_router_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")
+    open_router_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="OPENROUTER_API_KEYS"
+    )
+    open_router_key_usage_limit: int = Field(
+        default=0, validation_alias="OPENROUTER_KEY_USAGE_LIMIT"
+    )
 
     # ==================== DeepSeek Config ====================
     deepseek_api_key: str = Field(default="", validation_alias="DEEPSEEK_API_KEY")
+    deepseek_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="DEEPSEEK_API_KEYS"
+    )
+    deepseek_key_usage_limit: int = Field(
+        default=0, validation_alias="DEEPSEEK_KEY_USAGE_LIMIT"
+    )
 
     # ==================== NVIDIA NIM Config ====================
     nvidia_nim_api_key: str = ""
+    nvidia_nim_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="NVIDIA_NIM_API_KEYS"
+    )
+    nvidia_nim_key_usage_limit: int = Field(
+        default=0, validation_alias="NVIDIA_NIM_KEY_USAGE_LIMIT"
+    )
 
     # ==================== LM Studio Config ====================
     lm_studio_base_url: str = Field(
@@ -264,6 +283,35 @@ class Settings(BaseSettings):
             normalized = v.strip().lower()
             if normalized in ("", "none", "null", "off", "disabled"):
                 return None
+        return v
+
+    @field_validator(
+        "open_router_api_keys",
+        "deepseek_api_keys",
+        "nvidia_nim_api_keys",
+        mode="before",
+    )
+    @classmethod
+    def parse_api_key_tuple(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            if not v.strip():
+                return ()
+            return tuple(
+                part.strip() for part in re.split(r"[\s,]+", v) if part.strip()
+            )
+        if isinstance(v, list | tuple):
+            return tuple(str(part).strip() for part in v if str(part).strip())
+        return v
+
+    @field_validator(
+        "open_router_key_usage_limit",
+        "deepseek_key_usage_limit",
+        "nvidia_nim_key_usage_limit",
+    )
+    @classmethod
+    def validate_key_usage_limit(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("key usage limits must be >= 0")
         return v
 
     @field_validator("http_read_timeout")

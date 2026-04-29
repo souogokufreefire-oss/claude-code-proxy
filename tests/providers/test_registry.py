@@ -16,6 +16,7 @@ from providers.open_router import OpenRouterProvider
 from providers.registry import (
     PROVIDER_DESCRIPTORS,
     ProviderRegistry,
+    build_provider_config,
     create_provider,
 )
 
@@ -25,8 +26,14 @@ def _make_settings(**overrides):
     mock.model = "nvidia_nim/meta/llama3"
     mock.provider_type = "nvidia_nim"
     mock.nvidia_nim_api_key = "test_key"
+    mock.nvidia_nim_api_keys = ()
+    mock.nvidia_nim_key_usage_limit = 0
     mock.open_router_api_key = "test_openrouter_key"
+    mock.open_router_api_keys = ()
+    mock.open_router_key_usage_limit = 0
     mock.deepseek_api_key = "test_deepseek_key"
+    mock.deepseek_api_keys = ()
+    mock.deepseek_key_usage_limit = 0
     mock.lm_studio_base_url = "http://localhost:1234/v1"
     mock.llamacpp_base_url = "http://localhost:8080/v1"
     mock.ollama_base_url = "http://localhost:11434"
@@ -77,6 +84,32 @@ def test_ollama_descriptor_uses_native_anthropic_transport():
     assert descriptor.transport_type == "anthropic_messages"
     assert descriptor.default_base_url == "http://localhost:11434"
     assert "native_anthropic" in descriptor.capabilities
+
+
+def test_build_provider_config_uses_descriptor_fallback_keys():
+    settings = _make_settings(
+        nvidia_nim_api_key="primary",
+        nvidia_nim_api_keys=("primary", "fallback-1", "fallback-2"),
+        nvidia_nim_key_usage_limit=10,
+    )
+
+    config = build_provider_config(PROVIDER_DESCRIPTORS["nvidia_nim"], settings)
+
+    assert config.api_key == "primary"
+    assert config.api_keys == ("primary", "fallback-1", "fallback-2")
+    assert config.key_usage_limit == 10
+
+
+def test_build_provider_config_accepts_api_keys_without_legacy_primary():
+    settings = _make_settings(
+        nvidia_nim_api_key="",
+        nvidia_nim_api_keys=("fallback-1", "fallback-2"),
+    )
+
+    config = build_provider_config(PROVIDER_DESCRIPTORS["nvidia_nim"], settings)
+
+    assert config.api_key == "fallback-1"
+    assert config.api_keys == ("fallback-1", "fallback-2")
 
 
 def test_create_provider_uses_native_openrouter_by_default():

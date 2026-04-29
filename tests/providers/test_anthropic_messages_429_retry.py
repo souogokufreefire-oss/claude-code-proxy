@@ -81,6 +81,55 @@ async def test_native_stream_retries_on_http_429_then_streams(provider_config):
 
 
 @pytest.mark.asyncio
+async def test_native_stream_rotates_fallback_key_on_429(provider_config):
+    """Key-scoped 429 rotates API keys before returning the successful stream."""
+    GlobalRateLimiter.reset_instance()
+    try:
+        provider = NativeProvider(
+            provider_config.model_copy(
+                update={
+                    "api_key": "key1",
+                    "api_keys": ("key1", "key2"),
+                }
+            )
+        )
+        req = MockRequest()
+        request_obj = httpx.Request("POST", "https://custom.test/v1/messages")
+        too_many = FakeResponse(status_code=429, text="rate limited")
+        ok_response = FakeResponse(
+            lines=[
+                "event: message_start",
+                'data: {"type":"message_start"}',
+                "",
+            ]
+        )
+
+        async def send_side_effect(*_a, **_kw):
+            if provider._api_key == "key1":
+                return too_many
+            return ok_response
+
+        with (
+            patch.object(provider._client, "build_request", return_value=request_obj),
+            patch.object(
+                provider._client,
+                "send",
+                new_callable=AsyncMock,
+                side_effect=send_side_effect,
+            ) as mock_send,
+        ):
+            events = [e async for e in provider.stream_response(req)]
+
+        assert mock_send.await_count == 2
+        assert too_many.is_closed
+        assert ok_response.is_closed
+        assert provider._api_key == "key2"
+        assert events[0] == "event: message_start\n"
+    finally:
+        GlobalRateLimiter.reset_instance()
+
+
+@pytest.mark.asyncio
 async def test_non_429_http_error_not_retried(provider_config):
     """HTTP 500 from upstream is not retried; single send."""
     GlobalRateLimiter.reset_instance()

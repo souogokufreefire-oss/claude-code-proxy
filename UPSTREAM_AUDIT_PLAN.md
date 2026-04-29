@@ -62,7 +62,7 @@ own active user/reporting loop, or until the upstream community has moved over.
 
 ## Design Review Required
 
-- [ ] PR #205: API key fallback and usage tracking
+- [x] PR #205: API key fallback and usage tracking
   - Relevant to provider rate-limit resilience, but too broad to cherry-pick
     directly.
   - Local decision needed: whether key rotation belongs in provider transports,
@@ -74,14 +74,14 @@ own active user/reporting loop, or until the upstream community has moved over.
     `ProviderConfig`, and hardcodes per-provider key settings in
     `providers.registry`.
   - Local target shape:
-    - Add shared credential-list metadata to `config.provider_catalog` so
+    - Added shared credential-list metadata to `config.provider_catalog` so
       `providers.registry` stays descriptor-driven.
-    - Add immutable fallback-key fields to `ProviderConfig` only if the
+    - Added immutable fallback-key fields to `ProviderConfig` only if the
       transports consume them in the same change.
-    - Keep current `GlobalRateLimiter.execute_with_retry` behavior for transient
+    - Kept current `GlobalRateLimiter.execute_with_retry` behavior for transient
       upstream failures; rotate keys only for credential/quota failures that are
       demonstrably key-scoped.
-    - Add provider-specific transport tests for 401/429 rotation before
+    - Added provider-specific transport tests for 401/429 rotation before
       enabling the feature.
 
 - [x] PR #261: startup model-routing logs

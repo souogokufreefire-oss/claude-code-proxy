@@ -56,6 +56,15 @@ def _make_bad_request_error(message: str) -> openai.BadRequestError:
     return openai.BadRequestError(message, response=response, body=body)
 
 
+def _make_rate_limit_error(message: str = "rate limited") -> openai.RateLimitError:
+    response = Response(
+        status_code=429,
+        request=Request("POST", f"{NVIDIA_NIM_DEFAULT_BASE}/chat/completions"),
+    )
+    body = {"error": {"message": message, "type": "rate_limit_error", "code": 429}}
+    return openai.RateLimitError(message, response=response, body=body)
+
+
 @pytest.fixture(autouse=True)
 def mock_rate_limiter():
     """Mock the global rate limiter to prevent waiting."""
@@ -238,6 +247,50 @@ async def test_stream_response_text(nim_provider):
                             text_content += data["delta"]["text"]
 
         assert "Hello World" in text_content
+
+
+@pytest.mark.asyncio
+async def test_stream_response_rotates_fallback_key_on_rate_limit(provider_config):
+    provider = NvidiaNimProvider(
+        provider_config.model_copy(
+            update={
+                "api_key": "key1",
+                "api_keys": ("key1", "key2"),
+            }
+        ),
+        nim_settings=NimSettings(),
+    )
+    req = MockRequest()
+    calls = {"count": 0}
+
+    async def mock_stream():
+        yield MagicMock(
+            choices=[
+                MagicMock(
+                    delta=MagicMock(content="ok", reasoning_content=""),
+                    finish_reason="stop",
+                )
+            ],
+            usage=None,
+        )
+
+    async def create_side_effect(*_args, **_kwargs):
+        calls["count"] += 1
+        if provider._api_key == "key1":
+            raise _make_rate_limit_error()
+        return mock_stream()
+
+    with patch.object(
+        provider._client.chat.completions,
+        "create",
+        new_callable=AsyncMock,
+        side_effect=create_side_effect,
+    ):
+        events = [e async for e in provider.stream_response(req)]
+
+    assert calls["count"] == 2
+    assert provider._api_key == "key2"
+    assert any("ok" in event for event in events)
 
 
 @pytest.mark.asyncio
