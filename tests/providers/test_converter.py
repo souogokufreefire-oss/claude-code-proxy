@@ -153,9 +153,8 @@ def test_convert_user_message_tool_result_str():
     result = AnthropicToOpenAIConverter.convert_messages(messages)
     assert len(result) == 1
     assert result[0] == {
-        "role": "tool",
-        "tool_call_id": "tool_123",
-        "content": "Result data",
+        "role": "user",
+        "content": "Orphaned tool result for tool_123:\nResult data",
     }
 
 
@@ -171,9 +170,8 @@ def test_convert_user_message_tool_result_list():
     messages = [MockMessage("user", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
     assert len(result) == 1
-    assert result[0]["role"] == "tool"
-    assert result[0]["tool_call_id"] == "tool_456"
-    assert result[0]["content"] == "Line 1\nLine 2"
+    assert result[0]["role"] == "user"
+    assert result[0]["content"] == "Orphaned tool result for tool_456:\nLine 1\nLine 2"
 
 
 def test_convert_user_message_mixed_text_and_tool_result():
@@ -188,10 +186,13 @@ def test_convert_user_message_mixed_text_and_tool_result():
     messages = [MockMessage("user", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
 
-    # Order is preserved: user text first, then tool result.
+    # Order is preserved; the orphaned tool result is downgraded to user text.
     assert len(result) == 2
     assert result[0] == {"role": "user", "content": "Here is the result:"}
-    assert result[1] == {"role": "tool", "tool_call_id": "tool_789", "content": "42"}
+    assert result[1] == {
+        "role": "user",
+        "content": "Orphaned tool result for tool_789:\n42",
+    }
 
 
 # --- Message Conversion Tests: Assistant ---
@@ -502,7 +503,7 @@ def test_convert_assistant_interleaved_order_preserved():
 
 
 def test_convert_user_message_text_before_tool_result_order():
-    """User message with text then tool_result should preserve order: user text first, then tool.
+    """User message with text then orphaned tool_result preserves usable order.
 
     Bug: Current implementation emits tool_result immediately, then user text at end.
     Anthropic order is typically: user says something, then provides tool results.
@@ -515,11 +516,13 @@ def test_convert_user_message_text_before_tool_result_order():
     result = AnthropicToOpenAIConverter.convert_messages(messages)
 
     assert len(result) == 2
-    # Expected: user text first, then tool result
+    # Expected: user text first, then orphaned tool result as user text.
     assert result[0]["role"] == "user"
     assert result[0]["content"] == "Please use this result:"
-    assert result[1]["role"] == "tool"
-    assert result[1]["tool_call_id"] == "t1"
+    assert result[1] == {
+        "role": "user",
+        "content": "Orphaned tool result for t1:\n42",
+    }
 
 
 def test_convert_multiple_tool_results():
@@ -531,8 +534,14 @@ def test_convert_multiple_tool_results():
     messages = [MockMessage("user", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
     assert len(result) == 2
-    assert result[0]["tool_call_id"] == "t1"
-    assert result[1]["tool_call_id"] == "t2"
+    assert result[0] == {
+        "role": "user",
+        "content": "Orphaned tool result for t1:\nResult 1",
+    }
+    assert result[1] == {
+        "role": "user",
+        "content": "Orphaned tool result for t2:\nResult 2",
+    }
 
 
 def test_convert_user_message_tool_result_dict_as_json():
@@ -545,8 +554,10 @@ def test_convert_user_message_tool_result_dict_as_json():
     ]
     messages = [MockMessage("user", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
-    assert result[0]["role"] == "tool"
-    assert result[0]["content"] == '{"ok": true, "count": 2}'
+    assert result[0] == {
+        "role": "user",
+        "content": 'Orphaned tool result for t_dict:\n{"ok": true, "count": 2}',
+    }
 
 
 def test_assistant_redacted_thinking_omitted_from_openai_chat():
@@ -581,10 +592,18 @@ def test_convert_assistant_text_after_tool_use_splits_for_openai_chat():
     ]
     messages = [MockMessage("assistant", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
-    assert len(result) == 2
+    assert len(result) == 3
     assert result[0]["role"] == "assistant"
     assert result[0]["tool_calls"][0]["id"] == "call_z"
-    assert result[1] == {"role": "assistant", "content": "After tool"}
+    assert result[1] == {
+        "role": "tool",
+        "tool_call_id": "call_z",
+        "content": (
+            "Tool result unavailable: the client did not provide a matching "
+            "tool_result block."
+        ),
+    }
+    assert result[2] == {"role": "assistant", "content": "After tool"}
 
 
 def test_convert_assistant_text_after_tool_use_inserts_after_tool_results():

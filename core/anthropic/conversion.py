@@ -131,6 +131,84 @@ def _iter_tool_uses_in_order(blocks: list[Any]) -> list[dict[str, Any]]:
     return tool_calls
 
 
+def _tool_call_id(tool_call: dict[str, Any]) -> str | None:
+    value = tool_call.get("id")
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _placeholder_tool_result(tool_call_id: str) -> dict[str, Any]:
+    return {
+        "role": "tool",
+        "tool_call_id": tool_call_id,
+        "content": (
+            "Tool result unavailable: the client did not provide a matching "
+            "tool_result block."
+        ),
+    }
+
+
+def _orphan_tool_result_as_user_message(message: dict[str, Any]) -> dict[str, Any]:
+    tool_call_id = str(message.get("tool_call_id") or "").strip()
+    content = str(message.get("content") or "")
+    label = "Orphaned tool result"
+    if tool_call_id:
+        label = f"{label} for {tool_call_id}"
+    if content:
+        return {"role": "user", "content": f"{label}:\n{content}"}
+    return {"role": "user", "content": f"{label}: <empty>"}
+
+
+def _repair_openai_tool_message_sequence(
+    messages: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Keep OpenAI tool messages adjacent to matching assistant tool calls.
+
+    Claude transcripts can contain tool results whose corresponding assistant
+    tool_use was trimmed, compacted, or otherwise not present in the request.
+    OpenAI-compatible providers reject those requests. Preserve the information
+    as user-visible text instead of forwarding an invalid ``role: tool`` message.
+    """
+    repaired: list[dict[str, Any]] = []
+    expected_tool_ids: list[str] = []
+
+    def flush_missing_tool_results() -> None:
+        if not expected_tool_ids:
+            return
+        repaired.extend(
+            _placeholder_tool_result(tool_call_id) for tool_call_id in expected_tool_ids
+        )
+        expected_tool_ids.clear()
+
+    for message in messages:
+        role = message.get("role")
+        if role == "tool":
+            tool_call_id = str(message.get("tool_call_id") or "").strip()
+            if tool_call_id and tool_call_id in expected_tool_ids:
+                repaired.append(message)
+                expected_tool_ids.remove(tool_call_id)
+            else:
+                repaired.append(_orphan_tool_result_as_user_message(message))
+            continue
+
+        flush_missing_tool_results()
+        repaired.append(message)
+
+        if role == "assistant":
+            tool_calls = message.get("tool_calls")
+            if isinstance(tool_calls, list):
+                expected_tool_ids.extend(
+                    tool_call_id
+                    for tool_call in tool_calls
+                    if isinstance(tool_call, dict)
+                    if (tool_call_id := _tool_call_id(tool_call)) is not None
+                )
+
+    return repaired
+
+
 def _deferred_post_tool_blocks(
     content: list[Any], *, first_tool_index: int
 ) -> list[Any]:
@@ -276,7 +354,7 @@ class AnthropicToOpenAIConverter:
                 AnthropicToOpenAIConverter._deferred_post_tool_to_messages(pending)
             )
 
-        return result
+        return _repair_openai_tool_message_sequence(result)
 
     @staticmethod
     def _convert_assistant_message_with_split(

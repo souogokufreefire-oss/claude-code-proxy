@@ -89,10 +89,17 @@ own active user/reporting loop, or until the upstream community has moved over.
   - Local decision needed: exact log format and whether to include per-tier
     effective provider/model routing at startup.
 
-- [ ] Issues #263 and #265: long-session context failures
+- [x] Issues #263 and #265: long-session context failures
   - Likely needs targeted reproduction with Claude Code transcripts or live
     smoke coverage.
   - Track separately from generic provider retry work.
+  - Review result: issue #263 is a closed context-window overflow report, not a
+    proxy bug.
+  - Local fix for #265 class: OpenAI-chat conversion now repairs invalid tool
+    message sequences before provider dispatch. Orphaned `tool_result` blocks
+    are preserved as user-visible text, and deferred assistant text after a
+    tool call gets an explicit placeholder tool result when the client omitted
+    one. This avoids provider 400s that would otherwise persist until `/clear`.
 
 ## Backlog
 
