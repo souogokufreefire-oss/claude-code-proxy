@@ -5,6 +5,8 @@ import random
 import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any, ClassVar, TypeVar
 
 import httpx
@@ -14,6 +16,7 @@ from loguru import logger
 from core.rate_limit import StrictSlidingWindowLimiter
 
 T = TypeVar("T")
+RETRYABLE_STATUS_CODES = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 
 
 class GlobalRateLimiter:
@@ -38,6 +41,9 @@ class GlobalRateLimiter:
         rate_limit: int = 40,
         rate_window: float = 60.0,
         max_concurrency: int = 5,
+        max_retries: int = 8,
+        retry_base_delay: float = 2.0,
+        retry_max_delay: float = 120.0,
     ):
         # Prevent re-initialization on singleton reuse
         if hasattr(self, "_initialized"):
@@ -49,10 +55,19 @@ class GlobalRateLimiter:
             raise ValueError("rate_window must be > 0")
         if max_concurrency <= 0:
             raise ValueError("max_concurrency must be > 0")
+        if max_retries < 0:
+            raise ValueError("max_retries must be >= 0")
+        if retry_base_delay <= 0:
+            raise ValueError("retry_base_delay must be > 0")
+        if retry_max_delay <= 0:
+            raise ValueError("retry_max_delay must be > 0")
 
         self._rate_limit = rate_limit
         self._rate_window = float(rate_window)
         self._max_concurrency = max_concurrency
+        self._max_retries = max_retries
+        self._retry_base_delay = float(retry_base_delay)
+        self._retry_max_delay = float(retry_max_delay)
         self._proactive_limiter = StrictSlidingWindowLimiter(
             self._rate_limit, self._rate_window
         )
@@ -94,6 +109,9 @@ class GlobalRateLimiter:
         rate_limit: int | None = None,
         rate_window: float | None = None,
         max_concurrency: int = 5,
+        max_retries: int = 8,
+        retry_base_delay: float = 2.0,
+        retry_max_delay: float = 120.0,
     ) -> GlobalRateLimiter:
         """Get or create a provider-scoped limiter instance."""
         if not scope:
@@ -102,7 +120,12 @@ class GlobalRateLimiter:
         desired_rate_window = float(rate_window or 60.0)
         existing = cls._scoped_instances.get(scope)
         if existing and existing.matches_config(
-            desired_rate_limit, desired_rate_window, max_concurrency
+            desired_rate_limit,
+            desired_rate_window,
+            max_concurrency,
+            max_retries,
+            retry_base_delay,
+            retry_max_delay,
         ):
             return existing
         if existing:
@@ -113,6 +136,9 @@ class GlobalRateLimiter:
             rate_limit=desired_rate_limit,
             rate_window=desired_rate_window,
             max_concurrency=max_concurrency,
+            max_retries=max_retries,
+            retry_base_delay=retry_base_delay,
+            retry_max_delay=retry_max_delay,
         )
         return cls._scoped_instances[scope]
 
@@ -168,13 +194,22 @@ class GlobalRateLimiter:
         return time.monotonic() < self._blocked_until
 
     def matches_config(
-        self, rate_limit: int, rate_window: float, max_concurrency: int
+        self,
+        rate_limit: int,
+        rate_window: float,
+        max_concurrency: int,
+        max_retries: int,
+        retry_base_delay: float,
+        retry_max_delay: float,
     ) -> bool:
         """Return whether this limiter matches the requested runtime config."""
         return (
             self._rate_limit == rate_limit
             and self._rate_window == float(rate_window)
             and self._max_concurrency == max_concurrency
+            and self._max_retries == max_retries
+            and self._retry_base_delay == float(retry_base_delay)
+            and self._retry_max_delay == float(retry_max_delay)
         )
 
     def remaining_wait(self) -> float:
@@ -197,9 +232,9 @@ class GlobalRateLimiter:
         self,
         fn: Callable[..., Any],
         *args: Any,
-        max_retries: int = 3,
-        base_delay: float = 2.0,
-        max_delay: float = 60.0,
+        max_retries: int | None = None,
+        base_delay: float | None = None,
+        max_delay: float | None = None,
         jitter: float = 1.0,
         **kwargs: Any,
     ) -> Any:
@@ -221,47 +256,114 @@ class GlobalRateLimiter:
         Raises:
             The last exception if all retries are exhausted.
         """
+        effective_max_retries = (
+            self._max_retries if max_retries is None else max_retries
+        )
+        effective_base_delay = (
+            self._retry_base_delay if base_delay is None else base_delay
+        )
+        effective_max_delay = self._retry_max_delay if max_delay is None else max_delay
         last_exc: Exception | None = None
 
-        for attempt in range(1 + max_retries):
+        for attempt in range(1 + effective_max_retries):
             await self.wait_if_blocked()
 
             try:
                 return await fn(*args, **kwargs)
-            except openai.RateLimitError as e:
-                last_exc = e
-                if attempt >= max_retries:
-                    logger.warning(
-                        f"Rate limit retry exhausted after {max_retries} retries"
-                    )
-                    break
-
-                delay = min(base_delay * (2**attempt), max_delay)
-                delay += random.uniform(0, jitter)
-                logger.warning(
-                    f"Rate limited (429), attempt {attempt + 1}/{max_retries + 1}. "
-                    f"Retrying in {delay:.1f}s..."
-                )
-                self.set_blocked(delay)
-                await asyncio.sleep(delay)
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code != 429:
+            except Exception as e:
+                if not self._is_retryable_error(e):
                     raise
                 last_exc = e
-                if attempt >= max_retries:
+                if attempt >= effective_max_retries:
                     logger.warning(
-                        f"HTTP 429 retry exhausted after {max_retries} retries"
+                        "Provider retry exhausted after {} retries for {}",
+                        effective_max_retries,
+                        type(e).__name__,
                     )
                     break
 
-                delay = min(base_delay * (2**attempt), max_delay)
-                delay += random.uniform(0, jitter)
-                logger.warning(
-                    f"HTTP 429 from upstream, attempt {attempt + 1}/{max_retries + 1}. "
-                    f"Retrying in {delay:.1f}s..."
+                delay = self._retry_delay(
+                    e,
+                    attempt=attempt,
+                    base_delay=effective_base_delay,
+                    max_delay=effective_max_delay,
                 )
-                self.set_blocked(delay)
+                delay += random.uniform(0, jitter)
+                status = _status_code(e)
+                logger.warning(
+                    "Retryable provider error status={} exc_type={} attempt {}/{}. Retrying in {:.1f}s...",
+                    status,
+                    type(e).__name__,
+                    attempt + 1,
+                    effective_max_retries + 1,
+                    delay,
+                )
+                if status == 429:
+                    self.set_blocked(delay)
                 await asyncio.sleep(delay)
 
         assert last_exc is not None
         raise last_exc
+
+    def _is_retryable_error(self, error: Exception) -> bool:
+        status = _status_code(error)
+        if status is not None:
+            return status in RETRYABLE_STATUS_CODES
+        return isinstance(
+            error,
+            (
+                httpx.ConnectError,
+                httpx.RemoteProtocolError,
+                httpx.ReadError,
+                httpx.WriteError,
+                httpx.PoolTimeout,
+                openai.APIConnectionError,
+                openai.APITimeoutError,
+            ),
+        )
+
+    def _retry_delay(
+        self,
+        error: Exception,
+        *,
+        attempt: int,
+        base_delay: float,
+        max_delay: float,
+    ) -> float:
+        retry_after = _retry_after_seconds(error)
+        if retry_after is not None:
+            return min(retry_after, max_delay)
+        return min(base_delay * (2**attempt), max_delay)
+
+
+def _status_code(error: Exception) -> int | None:
+    response = getattr(error, "response", None)
+    status_code = getattr(response, "status_code", None)
+    if isinstance(status_code, int):
+        return status_code
+    status_code = getattr(error, "status_code", None)
+    return status_code if isinstance(status_code, int) else None
+
+
+def _retry_after_seconds(error: Exception) -> float | None:
+    response = getattr(error, "response", None)
+    headers = getattr(response, "headers", None)
+    if headers is None:
+        return None
+    raw = headers.get("retry-after")
+    if raw is None:
+        return None
+    value = raw.strip()
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+    try:
+        retry_at = parsedate_to_datetime(value)
+    except TypeError, ValueError:
+        return None
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=UTC)
+    return max(0.0, (retry_at - datetime.now(UTC)).total_seconds())

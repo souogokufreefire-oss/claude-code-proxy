@@ -33,10 +33,13 @@ class TestSettings:
         assert settings.model == "nvidia_nim/z-ai/glm4.7"
         assert isinstance(settings.provider_rate_limit, int)
         assert isinstance(settings.provider_rate_window, int)
+        assert settings.provider_max_retries == 8
+        assert settings.provider_retry_base_delay == 2.0
+        assert settings.provider_retry_max_delay == 120.0
         assert isinstance(settings.nim.temperature, float)
         assert isinstance(settings.fast_prefix_detection, bool)
         assert isinstance(settings.enable_model_thinking, bool)
-        assert settings.http_read_timeout == 120.0
+        assert settings.http_read_timeout is None
         assert settings.http_connect_timeout == HTTP_CONNECT_TIMEOUT_DEFAULT
         assert settings.enable_web_server_tools is False
         assert settings.log_raw_api_payloads is False
@@ -113,6 +116,18 @@ class TestSettings:
         settings = Settings()
         assert settings.provider_rate_window == 30
 
+    def test_provider_retry_policy_from_env(self, monkeypatch):
+        """Provider retry policy env vars are loaded into settings."""
+        from config.settings import Settings
+
+        monkeypatch.setenv("PROVIDER_MAX_RETRIES", "12")
+        monkeypatch.setenv("PROVIDER_RETRY_BASE_DELAY", "3.5")
+        monkeypatch.setenv("PROVIDER_RETRY_MAX_DELAY", "90")
+        settings = Settings()
+        assert settings.provider_max_retries == 12
+        assert settings.provider_retry_base_delay == 3.5
+        assert settings.provider_retry_max_delay == 90.0
+
     def test_http_read_timeout_from_env(self, monkeypatch):
         """HTTP_READ_TIMEOUT env var is loaded into settings."""
         from config.settings import Settings
@@ -120,6 +135,15 @@ class TestSettings:
         monkeypatch.setenv("HTTP_READ_TIMEOUT", "600")
         settings = Settings()
         assert settings.http_read_timeout == 600.0
+
+    @pytest.mark.parametrize("value", ["", "0", "none", "disabled"])
+    def test_http_read_timeout_can_be_disabled(self, monkeypatch, value):
+        """HTTP_READ_TIMEOUT can disable read deadlines for slow streams."""
+        from config.settings import Settings
+
+        monkeypatch.setenv("HTTP_READ_TIMEOUT", value)
+        settings = Settings()
+        assert settings.http_read_timeout is None
 
     def test_http_write_timeout_from_env(self, monkeypatch):
         """HTTP_WRITE_TIMEOUT env var is loaded into settings."""

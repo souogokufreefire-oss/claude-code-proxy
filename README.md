@@ -343,12 +343,17 @@ LLAMACPP_PROXY=""
 PROVIDER_RATE_LIMIT=1
 PROVIDER_RATE_WINDOW=3
 PROVIDER_MAX_CONCURRENCY=5
-HTTP_READ_TIMEOUT=120
+PROVIDER_MAX_RETRIES=8
+PROVIDER_RETRY_BASE_DELAY=2
+PROVIDER_RETRY_MAX_DELAY=120
+HTTP_READ_TIMEOUT=
 HTTP_WRITE_TIMEOUT=10
 HTTP_CONNECT_TIMEOUT=10
 ```
 
 Use lower limits for free hosted providers; local providers can usually tolerate higher concurrency if the machine can handle it.
+The retry settings apply to provider 429s, retryable 5xx responses, and transient network errors; 429 responses honor `Retry-After` when the upstream sends it.
+Leave `HTTP_READ_TIMEOUT` blank, `0`, or `none` to wait indefinitely between streamed provider chunks while still enforcing connect/write timeouts.
 
 ### Security And Diagnostics
 

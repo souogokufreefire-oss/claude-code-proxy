@@ -147,6 +147,15 @@ class Settings(BaseSettings):
     provider_max_concurrency: int = Field(
         default=5, validation_alias="PROVIDER_MAX_CONCURRENCY"
     )
+    provider_max_retries: int = Field(
+        default=8, validation_alias="PROVIDER_MAX_RETRIES"
+    )
+    provider_retry_base_delay: float = Field(
+        default=2.0, validation_alias="PROVIDER_RETRY_BASE_DELAY"
+    )
+    provider_retry_max_delay: float = Field(
+        default=120.0, validation_alias="PROVIDER_RETRY_MAX_DELAY"
+    )
     enable_model_thinking: bool = Field(
         default=True, validation_alias="ENABLE_MODEL_THINKING"
     )
@@ -161,8 +170,8 @@ class Settings(BaseSettings):
     )
 
     # ==================== HTTP Client Timeouts ====================
-    http_read_timeout: float = Field(
-        default=120.0, validation_alias="HTTP_READ_TIMEOUT"
+    http_read_timeout: float | None = Field(
+        default=None, validation_alias="HTTP_READ_TIMEOUT"
     )
     http_write_timeout: float = Field(
         default=10.0, validation_alias="HTTP_WRITE_TIMEOUT"
@@ -241,6 +250,24 @@ class Settings(BaseSettings):
     @classmethod
     def parse_optional_str(cls, v: Any) -> Any:
         if v == "":
+            return None
+        return v
+
+    @field_validator("http_read_timeout", mode="before")
+    @classmethod
+    def parse_optional_read_timeout(cls, v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            normalized = v.strip().lower()
+            if normalized in ("", "none", "null", "off", "disabled"):
+                return None
+        return v
+
+    @field_validator("http_read_timeout")
+    @classmethod
+    def normalize_read_timeout(cls, v: float | None) -> float | None:
+        if v is None or v <= 0:
             return None
         return v
 

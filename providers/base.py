@@ -21,7 +21,10 @@ class ProviderConfig(BaseModel):
     rate_limit: int | None = None
     rate_window: int = 60
     max_concurrency: int = 5
-    http_read_timeout: float = 300.0
+    max_retries: int = 8
+    retry_base_delay: float = 2.0
+    retry_max_delay: float = 120.0
+    http_read_timeout: float | None = None
     http_write_timeout: float = 10.0
     http_connect_timeout: float = HTTP_CONNECT_TIMEOUT_DEFAULT
     enable_thinking: bool = True

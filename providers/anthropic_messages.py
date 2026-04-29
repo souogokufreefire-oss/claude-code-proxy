@@ -52,6 +52,9 @@ class AnthropicMessagesTransport(BaseProvider):
             rate_limit=config.rate_limit,
             rate_window=config.rate_window,
             max_concurrency=config.max_concurrency,
+            max_retries=config.max_retries,
+            retry_base_delay=config.retry_base_delay,
+            retry_max_delay=config.retry_max_delay,
         )
         self._client = httpx.AsyncClient(
             base_url=self._base_url,

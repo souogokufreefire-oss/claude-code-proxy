@@ -38,6 +38,9 @@ def _make_mock_settings(**overrides):
     mock.provider_rate_limit = 40
     mock.provider_rate_window = 60
     mock.provider_max_concurrency = 5
+    mock.provider_max_retries = 8
+    mock.provider_retry_base_delay = 2.0
+    mock.provider_retry_max_delay = 120.0
     mock.open_router_api_key = "test_openrouter_key"
     mock.deepseek_api_key = "test_deepseek_key"
     mock.lm_studio_base_url = "http://localhost:1234/v1"

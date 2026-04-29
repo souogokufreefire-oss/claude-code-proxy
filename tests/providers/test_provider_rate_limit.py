@@ -279,6 +279,89 @@ class TestProviderRateLimiter:
         assert call_count == 2
 
     @pytest.mark.asyncio
+    async def test_execute_with_retry_honors_retry_after_for_httpx_429(self):
+        """HTTP 429 Retry-After controls the reactive block and sleep."""
+        from unittest.mock import AsyncMock, patch
+
+        import httpx
+        from httpx import Request, Response
+
+        limiter = GlobalRateLimiter.get_instance(rate_limit=100, rate_window=60)
+        call_count = 0
+
+        async def fail_then_ok():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                r = Response(
+                    429,
+                    request=Request("POST", "http://x"),
+                    headers={"Retry-After": "7"},
+                )
+                raise httpx.HTTPStatusError(
+                    "Too Many Requests", request=r.request, response=r
+                )
+            return "ok"
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await limiter.execute_with_retry(
+                fail_then_ok, max_retries=2, base_delay=0.01, max_delay=10, jitter=0
+            )
+
+        assert result == "ok"
+        assert call_count == 2
+        assert mock_sleep.await_args_list[0].args == (7.0,)
+        assert limiter.remaining_wait() > 0
+
+    @pytest.mark.asyncio
+    async def test_execute_with_retry_succeeds_on_httpx_500(self):
+        """Retryable provider 5xx responses are retried before surfacing."""
+        import httpx
+        from httpx import Request, Response
+
+        limiter = GlobalRateLimiter.get_instance(rate_limit=100, rate_window=60)
+        call_count = 0
+
+        async def fail_then_ok():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                r = Response(500, request=Request("POST", "http://x"), text="boom")
+                raise httpx.HTTPStatusError(
+                    "Internal Server Error", request=r.request, response=r
+                )
+            return "ok"
+
+        result = await limiter.execute_with_retry(
+            fail_then_ok, max_retries=2, base_delay=0.01, max_delay=0.1, jitter=0
+        )
+
+        assert result == "ok"
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_execute_with_retry_does_not_retry_httpx_400(self):
+        """Non-transient provider errors still fail immediately."""
+        import httpx
+        from httpx import Request, Response
+
+        limiter = GlobalRateLimiter.get_instance(rate_limit=100, rate_window=60)
+        call_count = 0
+
+        async def fail():
+            nonlocal call_count
+            call_count += 1
+            r = Response(400, request=Request("POST", "http://x"), text="bad")
+            raise httpx.HTTPStatusError("Bad Request", request=r.request, response=r)
+
+        with pytest.raises(httpx.HTTPStatusError):
+            await limiter.execute_with_retry(
+                fail, max_retries=2, base_delay=0.01, max_delay=0.1, jitter=0
+            )
+
+        assert call_count == 1
+
+    @pytest.mark.asyncio
     async def test_max_concurrency_zero_raises(self):
         """max_concurrency <= 0 raises ValueError."""
         GlobalRateLimiter.reset_instance()

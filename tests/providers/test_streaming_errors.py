@@ -202,10 +202,12 @@ class TestStreamingExceptionHandling:
             ]
 
         event_text = "".join(events)
-        assert "timed out after" in event_text
+        assert "Provider request timed out." in event_text
         assert "request_id=req_timeout123" in event_text
         assert "message_stop" in event_text
-        _assert_no_content_deltas_after_error_text(events, "timed out after")
+        _assert_no_content_deltas_after_error_text(
+            events, "Provider request timed out."
+        )
 
     @pytest.mark.asyncio
     async def test_error_after_partial_content(self):
