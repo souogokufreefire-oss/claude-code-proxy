@@ -12,7 +12,7 @@ the project modular as providers, clients, and smoke tests grow.
   server lifecycle.
 - `providers/` owns upstream model adapters, request conversion, stream
   conversion, provider rate limiting, and provider error mapping.
-- `cli/` owns package entrypoints and managed Claude CLI subprocess sessions.
+- `cli/` owns installed package entrypoints only.
 - `config/` owns environment-backed settings and logging setup.
 - `smoke/` owns opt-in product smoke scenarios and the public coverage
   inventory used by contract tests.
@@ -69,8 +69,7 @@ HTTP models and `create_app` only (not `app`, not those helpers).
 - `providers/`: provider descriptors, credential resolution, transport
   factories, scoped rate limiters, upstream request builders, and stream
   converters.
-- `cli/`: typed Claude CLI runner config, subprocess management, and packaged
-  user-facing entrypoints.
+- `cli/`: packaged user-facing entrypoints (`free-claude-code`, `fcc-init`).
 
 ## Smoke Coverage Policy
 

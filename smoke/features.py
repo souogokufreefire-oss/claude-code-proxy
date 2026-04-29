@@ -64,7 +64,7 @@ FEATURE_INVENTORY: tuple[FeatureCoverage, ...] = (
         "drop_in_claude_code_replacement",
         "Claude-compatible API, CLI, and editor protocol flows work",
         "readme",
-        ("tests/api/test_api.py", "tests/cli/test_cli.py"),
+        ("tests/api/test_api.py",),
         ("test_probe_and_models_routes", "test_claude_cli_prompt_when_available"),
         (
             "test_api_basic_conversation_e2e",
@@ -316,16 +316,16 @@ FEATURE_INVENTORY: tuple[FeatureCoverage, ...] = (
             "test_fcc_init_scaffolds_user_config",
             "test_free_claude_code_entrypoint_starts_server",
         ),
-        ("test_entrypoint_init_e2e", "test_entrypoint_server_e2e"),
+        ("test_entrypoint_server_e2e",),
         ("cli",),
         (),
         "always runnable once uv project dependencies are available",
     ),
     FeatureCoverage(
         "claude_cli_drop_in",
-        "Claude CLI can send adaptive thinking and tool-shaped history",
+        "External Claude CLI can send adaptive thinking and tool-shaped history",
         "public_surface",
-        ("tests/cli/test_cli.py",),
+        ("tests/api/test_api.py",),
         ("test_claude_cli_prompt_when_available",),
         (
             "test_claude_cli_adaptive_thinking_e2e",

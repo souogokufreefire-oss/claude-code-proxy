@@ -1,6 +1,1 @@
-"""CLI integration for Claude Code."""
-
-from .manager import CLISessionManager
-from .session import CLISession
-
-__all__ = ["CLISession", "CLISessionManager"]
+"""Installed package entry points for the free-claude-code proxy."""
