@@ -23,20 +23,35 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           fetch-depth: 1
 
-      - name: "Fail on type: ignore (no suppressions allowed)"
-        run: |
-          if grep -rE '# type: ignore|# ty: ignore' --include='*.py' . --exclude-dir=.venv --exclude-dir=.git; then
-            echo "::error::type: ignore / ty: ignore comments are not allowed. Fix the underlying type errors instead."
-            exit 1
-          fi
-          exit 0
-
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
-          version: "0.10.4"
+          version: "0.11.7"
           enable-cache: true
-          cache-python: true
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Sync dependencies
+        run: uv sync --locked --group dev
+
+      - name: Reject type suppressions
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          offenders = []
+          for path in Path(".").rglob("*.py"):
+              if ".venv" in path.parts:
+                  continue
+              text = path.read_text(encoding="utf-8")
+              for lineno, line in enumerate(text.splitlines(), start=1):
+                  if "# type: ignore" in line or "# ty: ignore" in line:
+                      offenders.append(f"{path}:{lineno}: {line.strip()}")
+
+          if offenders:
+              raise SystemExit("\n".join(offenders))
+          PY
 
       - name: Format check
         run: uv run ruff format --check
@@ -48,4 +63,4 @@ jobs:
         run: uv run ty check
 
       - name: Run tests
-        run: uv run pytest -v --tb=short
+        run: uv run pytest
