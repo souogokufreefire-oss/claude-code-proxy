@@ -15,6 +15,30 @@ def test_smoke_readme_uses_env_gated_serial_commands() -> None:
     assert "-m live" not in text
 
 
+def test_smoke_harness_is_proxy_only() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    forbidden = (
+        "MESSAGING_PLATFORM",
+        "messaging",
+        "telegram",
+        "discord",
+        "voice",
+        "bot",
+        "CLISession",
+        "process_registry",
+    )
+    paths = [
+        *list((repo_root / "smoke").rglob("*.py")),
+        repo_root / "smoke" / "README.md",
+    ]
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        lowered = text.lower()
+        for needle in forbidden:
+            haystack = lowered if needle.islower() else text
+            assert needle not in haystack, (path.relative_to(repo_root), needle)
+
+
 def test_smoke_report_summary_counts_regression_classes(tmp_path: Path) -> None:
     report = {
         "outcomes": [

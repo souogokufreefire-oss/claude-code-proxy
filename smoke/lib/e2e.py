@@ -359,33 +359,6 @@ def tool_use_blocks(events: list[SSEEvent]) -> list[dict[str, Any]]:
     ]
 
 
-def default_cli_events(session_id: str) -> list[dict[str, Any]]:
-    return [
-        {"type": "session_info", "session_id": session_id},
-        {
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {"type": "thinking", "thinking": "Inspect the request."},
-                    {
-                        "type": "tool_use",
-                        "id": "toolu_fake",
-                        "name": "Read",
-                        "input": {"file_path": "README.md"},
-                    },
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": "toolu_fake",
-                        "content": "Free Claude Code",
-                    },
-                    {"type": "text", "text": "Fake platform answer."},
-                ]
-            },
-        },
-        {"type": "exit", "code": 0, "stderr": None},
-    ]
-
-
 def assert_product_stream(events: list[SSEEvent]) -> None:
     assert_anthropic_stream_contract(events)
     assert text_content(events).strip() or has_tool_use(events), (

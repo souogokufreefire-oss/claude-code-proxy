@@ -24,7 +24,6 @@ def test_api_basic_conversation_e2e(smoke_config: SmokeConfig) -> None:
         name="product-api-basic",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run() as server:
         turn = ConversationDriver(server, smoke_config).ask(

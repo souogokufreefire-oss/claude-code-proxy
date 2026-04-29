@@ -80,7 +80,7 @@ def test_provider_error_e2e(smoke_config: SmokeConfig) -> None:
         SmokeServerDriver(
             smoke_config,
             name=f"product-provider-error-{provider_model.provider}",
-            env_overrides={"MODEL": broken_model, "MESSAGING_PLATFORM": "none"},
+            env_overrides={"MODEL": broken_model},
         ).run() as server,
         httpx.stream(
             "POST",
@@ -115,7 +115,6 @@ def test_openrouter_native_e2e(smoke_config: SmokeConfig) -> None:
         name="product-openrouter-native",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run() as server:
         turn = ConversationDriver(server, smoke_config).stream(
@@ -418,6 +417,5 @@ def _server_for_provider(
         name=f"product-provider-{provider_model.provider}-{name}",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run()

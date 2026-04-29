@@ -23,7 +23,6 @@ def test_auth_token_is_enforced_for_all_supported_header_shapes(
         env_overrides={
             "ANTHROPIC_AUTH_TOKEN": token,
             "FCC_ENV_FILE": str(env_file),
-            "MESSAGING_PLATFORM": "none",
         },
         name="auth",
     ) as server:

@@ -1,14 +1,14 @@
 # Product E2E Smoke Tests
 
-`smoke/` is local-only. It can launch subprocesses, call real providers, touch
-local model servers, and optionally send/delete bot messages. Hermetic contracts
-belong under `tests/` and must stay green with plain `uv run pytest`.
+`smoke/` is local-only. It can launch the proxy subprocess, call real providers,
+and touch local model servers. Hermetic contracts belong under `tests/` and must
+stay green with plain `uv run pytest`.
 
 ## Taxonomy
 
 - `smoke/prereq/`: liveness checks that prove the server, routes, auth, CLI
-  scripts, provider pings, local `/models`, and bot permissions are reachable.
-  These are prerequisites only.
+  scripts, provider pings, and local `/models` endpoints are reachable. These
+  are prerequisites only.
 - `smoke/product/`: end-to-end product scenarios. Feature smoke coverage comes
   from these tests, not from route/header/provider pings.
 - `smoke/features.py`: source-of-truth feature map:
@@ -46,7 +46,7 @@ Default targets exercise the proxy without external side effects:
 | --- | --- | --- |
 | `api` | messages, count_tokens full payload, errors, optimizations | configured provider only for streaming messages |
 | `auth` | x-api-key, bearer, anthropic-auth-token, invalid/missing auth | none; test sets an isolated token |
-| `cli` | `fcc-init`, server entrypoint, Claude CLI adaptive thinking, session cleanup | Claude CLI binary and provider only for real CLI |
+| `cli` | `fcc-init`, server entrypoint, external Claude CLI adaptive thinking | Claude CLI binary and provider only for real CLI |
 | `clients` | VS Code and JetBrains protocol payloads | configured provider |
 | `config` | env precedence, removed-env migration, proxy/timeouts | none |
 | `extensibility` | provider registry construction | none |
@@ -106,8 +106,7 @@ names contain `KEY`, `TOKEN`, `SECRET`, `WEBHOOK`, or `AUTH`.
 
 - `missing_env`: required credentials, binary, provider config, local server, or
   opt-in flag is absent.
-- `upstream_unavailable`: a real provider, bot API, or local model server is not
-  reachable.
+- `upstream_unavailable`: a real provider or local model server is not reachable.
 - `product_failure`: the app accepted the scenario but returned the wrong shape,
   crashed, leaked state, or violated the product contract.
 - `harness_bug`: the smoke test or driver made an invalid assumption.

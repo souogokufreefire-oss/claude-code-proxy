@@ -46,7 +46,6 @@ def test_live_tool_use_when_configured_model_supports_tools(
         smoke_config,
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
         name="tools",
     ) as server:

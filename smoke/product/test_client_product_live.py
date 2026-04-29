@@ -25,7 +25,6 @@ def test_vscode_protocol_e2e(smoke_config: SmokeConfig) -> None:
         name="product-vscode",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run() as server:
         turn = ConversationDriver(server, smoke_config).stream(
@@ -44,7 +43,6 @@ def test_jetbrains_protocol_e2e(smoke_config: SmokeConfig) -> None:
         name="product-jetbrains",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run() as server:
         driver = ConversationDriver(server, smoke_config)
@@ -70,7 +68,6 @@ def test_claude_cli_adaptive_thinking_e2e(
         name="product-claude-cli-adaptive",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run() as server:
         result = ClientProtocolDriver.run_claude_prompt(
@@ -98,7 +95,6 @@ def test_claude_cli_multiturn_tool_protocol_e2e(smoke_config: SmokeConfig) -> No
         name="product-claude-cli-protocol",
         env_overrides={
             "MODEL": provider_model.full_model,
-            "MESSAGING_PLATFORM": "none",
         },
     ).run() as server:
         turn = ConversationDriver(server, smoke_config).stream(
