@@ -18,6 +18,11 @@ from core.rate_limit import StrictSlidingWindowLimiter as SlidingWindowLimiter
 from .safe_diagnostics import format_exception_for_log
 
 
+def _log_messaging_error_details() -> bool:
+    """Return removed messaging diagnostic setting with a proxy-only default."""
+    return bool(getattr(get_settings(), "log_messaging_error_details", False))
+
+
 class MessagingRateLimiter:
     """
     A thread-safe global rate limiter for messaging.
@@ -146,7 +151,7 @@ class MessagingRateLimiter:
                                 asyncio.get_event_loop().time() + wait_secs
                             )
                         else:
-                            d = get_settings().log_messaging_error_details
+                            d = _log_messaging_error_details()
                             logger.error(
                                 "Error in limiter worker for key {}: {}",
                                 dedup_key,
@@ -155,7 +160,7 @@ class MessagingRateLimiter:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                d = get_settings().log_messaging_error_details
+                d = _log_messaging_error_details()
                 if d:
                     logger.error(
                         "MessagingRateLimiter worker critical error: {}",
@@ -192,7 +197,7 @@ class MessagingRateLimiter:
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            d = get_settings().log_messaging_error_details
+            d = _log_messaging_error_details()
             logger.debug(
                 "MessagingRateLimiter worker shutdown error: {}",
                 format_exception_for_log(e, log_full_message=d),
@@ -269,7 +274,7 @@ class MessagingRateLimiter:
                         x in error_msg for x in ["connect", "timeout", "broken"]
                     ):
                         wait = 2**attempt
-                        d = get_settings().log_messaging_error_details
+                        d = _log_messaging_error_details()
                         if d:
                             logger.warning(
                                 "Limiter fire_and_forget transient error (attempt {}): {}. Retrying in {}s...",
@@ -287,7 +292,7 @@ class MessagingRateLimiter:
                         await asyncio.sleep(wait)
                         continue
 
-                    d = get_settings().log_messaging_error_details
+                    d = _log_messaging_error_details()
                     logger.error(
                         "Final error in fire_and_forget for key {}: {}",
                         dedup_key,

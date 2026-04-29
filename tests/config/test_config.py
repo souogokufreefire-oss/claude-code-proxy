@@ -41,8 +41,6 @@ class TestSettings:
         assert settings.enable_web_server_tools is False
         assert settings.log_raw_api_payloads is False
         assert settings.log_raw_sse_events is False
-        assert settings.debug_platform_edits is False
-        assert settings.debug_subagent_stack is False
 
     def test_get_settings_cached(self):
         """Test get_settings returns cached instance."""
@@ -386,76 +384,6 @@ class TestNimSettingsValidators:
 
         with pytest.raises(ValidationError):
             NimSettings(**cast(Any, {"enable_thinking": True}))
-
-
-class TestSettingsOptionalStr:
-    """Test Settings parse_optional_str validator."""
-
-    def test_empty_telegram_token_to_none(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
-        s = Settings()
-        assert s.telegram_bot_token is None
-
-    def test_valid_telegram_token_preserved(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "abc123")
-        s = Settings()
-        assert s.telegram_bot_token == "abc123"
-
-    def test_empty_allowed_user_id_to_none(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("ALLOWED_TELEGRAM_USER_ID", "")
-        s = Settings()
-        assert s.allowed_telegram_user_id is None
-
-    def test_discord_bot_token_from_env(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("DISCORD_BOT_TOKEN", "discord_token_123")
-        s = Settings()
-        assert s.discord_bot_token == "discord_token_123"
-
-    def test_empty_discord_bot_token_to_none(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("DISCORD_BOT_TOKEN", "")
-        s = Settings()
-        assert s.discord_bot_token is None
-
-    def test_allowed_discord_channels_from_env(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("ALLOWED_DISCORD_CHANNELS", "111,222,333")
-        s = Settings()
-        assert s.allowed_discord_channels == "111,222,333"
-
-    def test_messaging_platform_from_env(self, monkeypatch):
-        from config.settings import Settings
-
-        monkeypatch.setenv("MESSAGING_PLATFORM", "discord")
-        s = Settings()
-        assert s.messaging_platform == "discord"
-
-    def test_whisper_device_auto_rejected(self, monkeypatch):
-        """WHISPER_DEVICE=auto raises ValidationError (auto removed)."""
-        from config.settings import Settings
-
-        monkeypatch.setenv("WHISPER_DEVICE", "auto")
-        with pytest.raises(ValidationError, match="whisper_device"):
-            Settings()
-
-    @pytest.mark.parametrize("device", ["cpu", "cuda"])
-    def test_whisper_device_valid(self, monkeypatch, device):
-        """Valid whisper_device values are accepted."""
-        from config.settings import Settings
-
-        monkeypatch.setenv("WHISPER_DEVICE", device)
-        s = Settings()
-        assert s.whisper_device == device
 
 
 class TestPerModelMapping:

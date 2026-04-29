@@ -13,7 +13,7 @@ pytestmark = [pytest.mark.live]
 
 @pytest.mark.smoke_target("telegram")
 def test_telegram_live_permissions_e2e(smoke_config: SmokeConfig) -> None:
-    token = smoke_config.settings.telegram_bot_token
+    token = getattr(smoke_config.settings, "telegram_bot_token", "")
     if not token:
         pytest.skip("missing_env: TELEGRAM_BOT_TOKEN is not configured")
 
@@ -23,7 +23,7 @@ def test_telegram_live_permissions_e2e(smoke_config: SmokeConfig) -> None:
     assert get_me.json()["ok"] is True
 
     chat_id = os.getenv("FCC_SMOKE_TELEGRAM_CHAT_ID") or (
-        smoke_config.settings.allowed_telegram_user_id or ""
+        getattr(smoke_config.settings, "allowed_telegram_user_id", "") or ""
     )
     if not chat_id:
         pytest.skip(
@@ -57,10 +57,11 @@ def test_telegram_live_permissions_e2e(smoke_config: SmokeConfig) -> None:
 
 @pytest.mark.smoke_target("discord")
 def test_discord_live_permissions_e2e(smoke_config: SmokeConfig) -> None:
-    token = smoke_config.settings.discord_bot_token
+    token = getattr(smoke_config.settings, "discord_bot_token", "")
     channel_id = os.getenv("FCC_SMOKE_DISCORD_CHANNEL_ID")
-    if not channel_id and smoke_config.settings.allowed_discord_channels:
-        channel_id = smoke_config.settings.allowed_discord_channels.split(",", 1)[0]
+    allowed_channels = getattr(smoke_config.settings, "allowed_discord_channels", "")
+    if not channel_id and allowed_channels:
+        channel_id = allowed_channels.split(",", 1)[0]
     if not token:
         pytest.skip("missing_env: DISCORD_BOT_TOKEN is not configured")
     if not channel_id:

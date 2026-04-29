@@ -101,18 +101,6 @@ class Settings(BaseSettings):
     # ==================== DeepSeek Config ====================
     deepseek_api_key: str = Field(default="", validation_alias="DEEPSEEK_API_KEY")
 
-    # ==================== Messaging Platform Selection ====================
-    # Valid: "telegram" | "discord" | "none"
-    messaging_platform: str = Field(
-        default="discord", validation_alias="MESSAGING_PLATFORM"
-    )
-    messaging_rate_limit: int = Field(
-        default=1, validation_alias="MESSAGING_RATE_LIMIT"
-    )
-    messaging_rate_window: float = Field(
-        default=1.0, validation_alias="MESSAGING_RATE_WINDOW"
-    )
-
     # ==================== NVIDIA NIM Config ====================
     nvidia_nim_api_key: str = ""
 
@@ -219,58 +207,8 @@ class Settings(BaseSettings):
     log_api_error_tracebacks: bool = Field(
         default=False, validation_alias="LOG_API_ERROR_TRACEBACKS"
     )
-    # When false (default), messaging logs omit text/transcription previews (metadata only).
-    log_raw_messaging_content: bool = Field(
-        default=False, validation_alias="LOG_RAW_MESSAGING_CONTENT"
-    )
-    # When true, log full Claude CLI stderr, non-JSON lines, and parser error text.
-    log_raw_cli_diagnostics: bool = Field(
-        default=False, validation_alias="LOG_RAW_CLI_DIAGNOSTICS"
-    )
-    # When true, log exception text / CLI error strings in messaging (may leak user content).
-    log_messaging_error_details: bool = Field(
-        default=False, validation_alias="LOG_MESSAGING_ERROR_DETAILS"
-    )
-    debug_platform_edits: bool = Field(
-        default=False, validation_alias="DEBUG_PLATFORM_EDITS"
-    )
-    debug_subagent_stack: bool = Field(
-        default=False, validation_alias="DEBUG_SUBAGENT_STACK"
-    )
-
     # ==================== NIM Settings ====================
     nim: NimSettings = Field(default_factory=NimSettings)
-
-    # ==================== Voice Note Transcription ====================
-    voice_note_enabled: bool = Field(
-        default=True, validation_alias="VOICE_NOTE_ENABLED"
-    )
-    # Device: "cpu" | "cuda" | "nvidia_nim"
-    # - "cpu"/"cuda": local Whisper (requires voice_local extra: uv sync --extra voice_local)
-    # - "nvidia_nim": NVIDIA NIM Whisper API (requires voice extra: uv sync --extra voice)
-    whisper_device: str = Field(default="cpu", validation_alias="WHISPER_DEVICE")
-    # Whisper model ID or short name (for local Whisper) or NVIDIA NIM model (for nvidia_nim)
-    # Local Whisper: "tiny", "base", "small", "medium", "large-v2", "large-v3", "large-v3-turbo"
-    # NVIDIA NIM: "nvidia/parakeet-ctc-1.1b-asr", "openai/whisper-large-v3", etc.
-    whisper_model: str = Field(default="base", validation_alias="WHISPER_MODEL")
-    # Hugging Face token for faster model downloads (optional, for local Whisper)
-    hf_token: str = Field(default="", validation_alias="HF_TOKEN")
-
-    # ==================== Bot Wrapper Config ====================
-    telegram_bot_token: str | None = None
-    allowed_telegram_user_id: str | None = None
-    discord_bot_token: str | None = Field(
-        default=None, validation_alias="DISCORD_BOT_TOKEN"
-    )
-    allowed_discord_channels: str | None = Field(
-        default=None, validation_alias="ALLOWED_DISCORD_CHANNELS"
-    )
-    claude_workspace: str = "./agent_workspace"
-    allowed_dir: str = ""
-    claude_cli_bin: str = Field(default="claude", validation_alias="CLAUDE_CLI_BIN")
-    max_message_log_entries_per_chat: int | None = Field(
-        default=None, validation_alias="MAX_MESSAGE_LOG_ENTRIES_PER_CHAT"
-    )
 
     # ==================== Server ====================
     host: str = "0.0.0.0"
@@ -292,10 +230,6 @@ class Settings(BaseSettings):
 
     # Handle empty strings for optional string fields
     @field_validator(
-        "telegram_bot_token",
-        "allowed_telegram_user_id",
-        "discord_bot_token",
-        "allowed_discord_channels",
         "model_opus",
         "model_sonnet",
         "model_haiku",
@@ -309,45 +243,6 @@ class Settings(BaseSettings):
         if v == "":
             return None
         return v
-
-    @field_validator("max_message_log_entries_per_chat", mode="before")
-    @classmethod
-    def parse_optional_log_cap(cls, v: Any) -> Any:
-        if v == "" or v is None:
-            return None
-        return v
-
-    @field_validator("whisper_device")
-    @classmethod
-    def validate_whisper_device(cls, v: str) -> str:
-        if v not in ("cpu", "cuda", "nvidia_nim"):
-            raise ValueError(
-                f"whisper_device must be 'cpu', 'cuda', or 'nvidia_nim', got {v!r}"
-            )
-        return v
-
-    @field_validator("messaging_platform")
-    @classmethod
-    def validate_messaging_platform(cls, v: str) -> str:
-        if v not in ("telegram", "discord", "none"):
-            raise ValueError(
-                f"messaging_platform must be 'telegram', 'discord', or 'none', got {v!r}"
-            )
-        return v
-
-    @field_validator("messaging_rate_limit")
-    @classmethod
-    def validate_messaging_rate_limit(cls, v: int) -> int:
-        if v <= 0:
-            raise ValueError("messaging_rate_limit must be > 0")
-        return v
-
-    @field_validator("messaging_rate_window")
-    @classmethod
-    def validate_messaging_rate_window(cls, v: float) -> float:
-        if v <= 0:
-            raise ValueError("messaging_rate_window must be > 0")
-        return float(v)
 
     @field_validator("web_fetch_allowed_schemes")
     @classmethod
@@ -388,19 +283,6 @@ class Settings(BaseSettings):
             supported = ", ".join(f"'{p}'" for p in SUPPORTED_PROVIDER_IDS)
             raise ValueError(f"Invalid provider: '{provider}'. Supported: {supported}")
         return v
-
-    @model_validator(mode="after")
-    def check_nvidia_nim_api_key(self) -> Settings:
-        if (
-            self.voice_note_enabled
-            and self.whisper_device == "nvidia_nim"
-            and not self.nvidia_nim_api_key.strip()
-        ):
-            raise ValueError(
-                "NVIDIA_NIM_API_KEY is required when WHISPER_DEVICE is 'nvidia_nim'. "
-                "Set it in your .env file."
-            )
-        return self
 
     @model_validator(mode="after")
     def prefer_dotenv_anthropic_auth_token(self) -> Settings:

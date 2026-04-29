@@ -13,6 +13,11 @@ from ..safe_diagnostics import format_exception_for_log
 from .data import MessageNode, MessageState, MessageTree
 
 
+def _log_messaging_error_details() -> bool:
+    """Return removed messaging diagnostic setting with a proxy-only default."""
+    return bool(getattr(get_settings(), "log_messaging_error_details", False))
+
+
 class TreeRepository:
     """
     In-memory index of trees and node-to-root mappings.
@@ -218,7 +223,7 @@ class TreeQueueProcessor:
         try:
             await self._queue_update_callback(tree)
         except Exception as e:
-            d = get_settings().log_messaging_error_details
+            d = _log_messaging_error_details()
             logger.warning(
                 "Queue update callback failed: {}",
                 format_exception_for_log(e, log_full_message=d),
@@ -231,7 +236,7 @@ class TreeQueueProcessor:
         try:
             await self._node_started_callback(tree, node_id)
         except Exception as e:
-            d = get_settings().log_messaging_error_details
+            d = _log_messaging_error_details()
             logger.warning(
                 "Node started callback failed: {}",
                 format_exception_for_log(e, log_full_message=d),
@@ -257,7 +262,7 @@ class TreeQueueProcessor:
             logger.info(f"Task for node {node.node_id} was cancelled")
             raise
         except Exception as e:
-            d = get_settings().log_messaging_error_details
+            d = _log_messaging_error_details()
             logger.error(
                 "Error processing node {}: {}",
                 node.node_id,

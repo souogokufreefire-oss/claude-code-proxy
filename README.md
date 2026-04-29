@@ -2,7 +2,7 @@
 
 # 🤖 Free Claude Code
 
-Use Claude Code CLI, VS Code, JetBrains ACP, or chat bots through your own Anthropic-compatible proxy.
+Use Claude Code CLI, VS Code, or JetBrains ACP through your own Anthropic-compatible proxy.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-3776ab.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
@@ -28,8 +28,6 @@ Free Claude Code routes Anthropic Messages API traffic from Claude Code to NVIDI
 - Six provider backends: NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, and Ollama.
 - Per-model routing: send Opus, Sonnet, Haiku, and fallback traffic to different providers.
 - Streaming, tool use, reasoning/thinking block handling, and local request optimizations.
-- Optional Discord or Telegram bot wrapper for remote coding sessions.
-- Optional voice-note transcription through local Whisper or NVIDIA NIM.
 
 ## Quick Start
 
@@ -300,61 +298,6 @@ You can also create fixed aliases:
 alias claude-kimi='ANTHROPIC_BASE_URL="http://localhost:8082" ANTHROPIC_AUTH_TOKEN="freecc:nvidia_nim/moonshotai/kimi-k2.5" claude'
 ```
 
-## Optional Integrations
-
-### Discord And Telegram Bots
-
-The bot wrapper runs Claude Code sessions remotely, streams progress, supports reply-based conversation branches, and can stop or clear tasks.
-
-Discord minimum config:
-
-```dotenv
-MESSAGING_PLATFORM="discord"
-DISCORD_BOT_TOKEN="your-discord-bot-token"
-ALLOWED_DISCORD_CHANNELS="123456789"
-CLAUDE_WORKSPACE="./agent_workspace"
-ALLOWED_DIR="C:/Users/yourname/projects"
-```
-
-Create the bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable Message Content Intent, and invite it with read/send/history permissions.
-
-Telegram minimum config:
-
-```dotenv
-MESSAGING_PLATFORM="telegram"
-TELEGRAM_BOT_TOKEN="123456789:ABC..."
-ALLOWED_TELEGRAM_USER_ID="your-user-id"
-CLAUDE_WORKSPACE="./agent_workspace"
-ALLOWED_DIR="C:/Users/yourname/projects"
-```
-
-Get a token from [@BotFather](https://t.me/BotFather) and your user ID from [@userinfobot](https://t.me/userinfobot).
-
-Useful commands:
-
-- `/stop` cancels a task; reply to a task message to stop only that branch.
-- `/clear` resets sessions; reply to clear one branch.
-- `/stats` shows session state.
-
-### Voice Notes
-
-Voice notes work on Discord and Telegram. Choose one backend:
-
-```bash
-uv sync --extra voice_local
-uv sync --extra voice
-uv sync --extra voice --extra voice_local
-```
-
-```dotenv
-VOICE_NOTE_ENABLED=true
-WHISPER_DEVICE="cpu"          # cpu | cuda | nvidia_nim
-WHISPER_MODEL="base"
-HF_TOKEN=""
-```
-
-Use `WHISPER_DEVICE="nvidia_nim"` with the `voice` extra and `NVIDIA_NIM_API_KEY` for NVIDIA-hosted transcription.
-
 ## Configuration Reference
 
 [`.env.example`](.env.example) is the canonical list of variables. The sections below are the ones most users change.
@@ -414,9 +357,6 @@ ANTHROPIC_AUTH_TOKEN=
 LOG_RAW_API_PAYLOADS=false
 LOG_RAW_SSE_EVENTS=false
 LOG_API_ERROR_TRACEBACKS=false
-LOG_RAW_MESSAGING_CONTENT=false
-LOG_RAW_CLI_DIAGNOSTICS=false
-LOG_MESSAGING_ERROR_DETAILS=false
 ```
 
 Raw logging flags can expose prompts, tool arguments, paths, and model output. Keep them off unless you are debugging locally.
