@@ -16,6 +16,10 @@ def _app_settings(**kwargs):
         "log_api_error_tracebacks": False,
         "log_raw_api_payloads": False,
         "log_file": "server.log",
+        "model": "nvidia_nim/moonshotai/kimi-k2-thinking",
+        "model_opus": None,
+        "model_sonnet": "open_router/anthropic/claude-sonnet-4.5",
+        "model_haiku": None,
         **kwargs,
     }
     return SimpleNamespace(**data)
@@ -44,6 +48,22 @@ def test_warn_if_process_auth_token_skips_explicit_dotenv_config():
         api_runtime_mod.warn_if_process_auth_token(settings)
 
     warning.assert_not_called()
+
+
+def test_log_model_configuration_logs_effective_routing():
+    api_runtime_mod = importlib.import_module("api.runtime")
+    settings = cast(Settings, _app_settings())
+
+    with patch.object(api_runtime_mod.logger, "info") as info:
+        api_runtime_mod.log_model_configuration(settings)
+
+    info.assert_called_once_with(
+        "Configured model routing: default={} opus={} sonnet={} haiku={}",
+        "nvidia_nim/moonshotai/kimi-k2-thinking",
+        "<inherit default>",
+        "open_router/anthropic/claude-sonnet-4.5",
+        "<inherit default>",
+    )
 
 
 def test_create_app_provider_error_handler_returns_anthropic_format():

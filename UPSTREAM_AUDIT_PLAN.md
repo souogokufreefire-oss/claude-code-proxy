@@ -69,8 +69,22 @@ own active user/reporting loop, or until the upstream community has moved over.
     provider config, or a shared credential pool.
   - Must not conflict with the existing retry/backoff and user-facing error
     mapping.
+  - Design review result: adapt, do not cherry-pick. The upstream patch mixes
+    key rotation into transport retry loops, adds mutable defaults to
+    `ProviderConfig`, and hardcodes per-provider key settings in
+    `providers.registry`.
+  - Local target shape:
+    - Add shared credential-list metadata to `config.provider_catalog` so
+      `providers.registry` stays descriptor-driven.
+    - Add immutable fallback-key fields to `ProviderConfig` only if the
+      transports consume them in the same change.
+    - Keep current `GlobalRateLimiter.execute_with_retry` behavior for transient
+      upstream failures; rotate keys only for credential/quota failures that are
+      demonstrably key-scoped.
+    - Add provider-specific transport tests for 401/429 rotation before
+      enabling the feature.
 
-- [ ] PR #261: startup model-routing logs
+- [x] PR #261: startup model-routing logs
   - Useful observability, low urgency.
   - Local decision needed: exact log format and whether to include per-tier
     effective provider/model routing at startup.
