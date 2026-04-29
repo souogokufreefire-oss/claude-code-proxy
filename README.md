@@ -437,7 +437,6 @@ free-claude-code/
 ├── api/                   # FastAPI routes, service layer, routing, optimizations
 ├── core/                  # Shared Anthropic protocol helpers and SSE utilities
 ├── providers/             # Provider transports, registry, rate limiting
-├── messaging/             # Discord/Telegram adapters, sessions, voice
 ├── cli/                   # Package entry points and Claude process management
 ├── config/                # Settings, provider catalog, logging
 └── tests/                 # Unit and contract tests
@@ -466,7 +465,6 @@ Run them in that order before pushing. CI enforces the same checks.
 - Add OpenAI-compatible providers by extending `OpenAIChatTransport`.
 - Add Anthropic Messages providers by extending `AnthropicMessagesTransport`.
 - Register provider metadata in `config.provider_catalog` and factory wiring in `providers.registry`.
-- Add messaging platforms by implementing the `MessagingPlatform` interface in `messaging/`.
 
 ## Contributing
 

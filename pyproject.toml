@@ -12,12 +12,9 @@ dependencies = [
     "fastapi[standard]>=0.136.1",
     "uvicorn>=0.46.0",
     "httpx[socks]>=0.28.1",
-    "markdown-it-py>=3.0.0",
     "pydantic>=2.13.3",
     "python-dotenv>=1.2.2",
     "tiktoken>=0.7.0",
-    "python-telegram-bot>=22.7",
-    "discord.py>=2.7.1",
     "pydantic-settings>=2.14.0",
     "openai>=2.32.0",
     "loguru>=0.7.0",
@@ -28,32 +25,11 @@ dependencies = [
 free-claude-code = "cli.entrypoints:serve"
 fcc-init = "cli.entrypoints:init"
 
-[project.optional-dependencies]
-voice = [
-    "grpcio>=1.80.0",
-    "grpcio-tools>=1.80.0",
-    "nvidia-riva-client>=2.25.1",
-]
-voice_local = [
-    "torch>=2.11.0",
-    "transformers>=5.6.2",
-    "accelerate>=1.13.0",
-    "librosa>=0.10.0",
-]
-
 [tool.hatch.build.targets.wheel]
-packages = ["api", "cli", "config", "core", "messaging", "providers"]
+packages = ["api", "cli", "config", "core", "providers"]
 
 [tool.hatch.build.targets.wheel.force-include]
 ".env.example" = "cli/env.example"
-
-[tool.uv.sources]
-torch = { index = "pytorch-cu130" }
-
-[[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
-explicit = true
 
 [dependency-groups]
 dev = [
@@ -89,7 +65,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["api", "cli", "config", "core", "messaging", "providers", "smoke"]
+known-first-party = ["api", "cli", "config", "core", "providers", "smoke"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -105,18 +81,11 @@ markers = [
     "live: opt-in local smoke tests that can touch real services",
     "interactive: smoke tests requiring manual user interaction",
     "provider: live provider checks",
-    "messaging: live messaging platform checks",
     "cli: CLI integration checks",
     "clients: client compatibility checks",
-    "voice: voice transcription checks",
     "contract: deterministic feature contract checks",
     "smoke_target(name): route a smoke test behind FCC_SMOKE_TARGETS",
 ]
 
 [tool.ty.environment]
 python-version = "3.14"
-
-[tool.ty.analysis]
-# Optional voice_local extra: torch, transformers, librosa for local whisper transcription
-# Optional voice extra: nvidia-riva-client for nvidia_nim transcription provider
-allowed-unresolved-imports = ["torch", "transformers", "librosa", "riva.client"]

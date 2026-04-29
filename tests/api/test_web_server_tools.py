@@ -27,13 +27,24 @@ from core.anthropic.stream_contracts import (
     parse_sse_text,
     text_content,
 )
-from messaging.event_parser import parse_cli_event
 from providers.exceptions import InvalidRequestError
 
 _STRICT_EGRESS = WebFetchEgressPolicy(
     allow_private_network_targets=False,
     allowed_schemes=frozenset({"http", "https"}),
 )
+
+
+def _text_deltas_from_event_data(data: Any) -> list[str]:
+    if not isinstance(data, dict):
+        return []
+    if data.get("type") != "content_block_delta":
+        return []
+    delta = data.get("delta")
+    if not isinstance(delta, dict) or delta.get("type") != "text_delta":
+        return []
+    text = delta.get("text")
+    return [text] if isinstance(text, str) else []
 
 
 class FixedProviderModelRouter(ModelRouter):
@@ -349,11 +360,7 @@ async def test_streams_web_search_server_tool_result(monkeypatch):
     assert "example.com" in text_content(events)
     cli_text: list[str] = []
     for ev in events:
-        cli_text.extend(
-            str(p.get("text", ""))
-            for p in parse_cli_event(ev.data)
-            if p.get("type") == "text_delta"
-        )
+        cli_text.extend(_text_deltas_from_event_data(ev.data))
     assert "example.com" in "".join(cli_text)
     deltas = [e for e in events if e.event == "message_delta"]
     assert deltas[-1].data["usage"]["server_tool_use"] == {"web_search_requests": 1}
@@ -451,11 +458,7 @@ async def test_streams_web_fetch_server_tool_result(monkeypatch):
     assert "Article body" in text_content(events)
     cli_text: list[str] = []
     for ev in events:
-        cli_text.extend(
-            str(p.get("text", ""))
-            for p in parse_cli_event(ev.data)
-            if p.get("type") == "text_delta"
-        )
+        cli_text.extend(_text_deltas_from_event_data(ev.data))
     assert "Article body" in "".join(cli_text)
     deltas = [e for e in events if e.event == "message_delta"]
     assert deltas[-1].data["usage"]["server_tool_use"] == {"web_fetch_requests": 1}
@@ -507,11 +510,7 @@ async def test_streams_web_fetch_error_summary_generic_by_default(monkeypatch):
     )
     cli_err_text: list[str] = []
     for ev in err_events:
-        cli_err_text.extend(
-            str(p.get("text", ""))
-            for p in parse_cli_event(ev.data)
-            if p.get("type") == "text_delta"
-        )
+        cli_err_text.extend(_text_deltas_from_event_data(ev.data))
     assert "Web tool request failed." in "".join(cli_err_text)
     log_blob = " ".join(str(a) for c in log_warn.call_args_list for a in c.args)
     assert secret not in log_blob

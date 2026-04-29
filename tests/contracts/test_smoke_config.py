@@ -33,7 +33,6 @@ def _smoke_config(**overrides) -> SmokeConfig:
         "root": Path("."),
         "results_dir": Path(".smoke-results"),
         "live": False,
-        "interactive": False,
         "targets": DEFAULT_TARGETS,
         "provider_matrix": frozenset(),
         "timeout_s": 45.0,

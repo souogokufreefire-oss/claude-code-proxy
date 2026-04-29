@@ -1,9 +1,6 @@
-import asyncio
 import contextlib
 import logging
 import os
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -81,113 +78,6 @@ def llamacpp_provider(provider_config):
         rate_window=60,
     )
     return LlamaCppProvider(llamacpp_config)
-
-
-@pytest.fixture
-def mock_cli_session():
-    from messaging.platforms.base import CLISession
-
-    session = MagicMock(spec=CLISession)
-    session.start_task = MagicMock()  # This will return an async generator
-    session.is_busy = False
-    return session
-
-
-@pytest.fixture
-def mock_cli_manager():
-    from messaging.platforms.base import SessionManagerInterface
-
-    manager = MagicMock(spec=SessionManagerInterface)
-    manager.get_or_create_session = AsyncMock()
-    manager.register_real_session_id = AsyncMock(return_value=True)
-    manager.stop_all = AsyncMock()
-    manager.remove_session = AsyncMock(return_value=True)
-    manager.get_stats = MagicMock(return_value={"active_sessions": 0})
-    return manager
-
-
-@pytest.fixture
-def mock_platform():
-    from messaging.platforms.base import MessagingPlatform
-
-    platform = MagicMock(spec=MessagingPlatform)
-    platform.send_message = AsyncMock(return_value="msg_123")
-    platform.edit_message = AsyncMock()
-    platform.delete_message = AsyncMock()
-    platform.queue_send_message = AsyncMock(return_value="msg_123")
-    platform.queue_edit_message = AsyncMock()
-    platform.queue_delete_message = AsyncMock()
-
-    async def _queue_delete_messages(
-        chat_id: str, message_ids: list[str], *, fire_and_forget: bool = True
-    ) -> None:
-        qdm = platform.queue_delete_message
-        for mid in message_ids:
-            await qdm(chat_id, mid, fire_and_forget=fire_and_forget)
-
-    platform.queue_delete_messages = AsyncMock(side_effect=_queue_delete_messages)
-
-    def _fire_and_forget(task):
-        if asyncio.iscoroutine(task):
-            # Create a task to avoid "coroutine was never awaited" warning
-            return asyncio.create_task(task)
-        return None
-
-    platform.fire_and_forget = MagicMock(side_effect=_fire_and_forget)
-    return platform
-
-
-@pytest.fixture
-def mock_session_store():
-    from messaging.session import SessionStore
-
-    store = MagicMock(spec=SessionStore)
-    store.save_tree = MagicMock()
-    store.get_tree = MagicMock(return_value=None)
-    store.register_node = MagicMock()
-    store.clear_all = MagicMock()
-    store.record_message_id = MagicMock()
-    store.get_message_ids_for_chat = MagicMock(return_value=[])
-    return store
-
-
-@pytest.fixture
-def incoming_message_factory():
-    _valid_keys = frozenset(
-        {
-            "text",
-            "chat_id",
-            "user_id",
-            "message_id",
-            "platform",
-            "reply_to_message_id",
-            "message_thread_id",
-            "username",
-            "timestamp",
-            "raw_event",
-            "status_message_id",
-        }
-    )
-
-    def _create(**kwargs):
-        from messaging.models import IncomingMessage
-
-        defaults: dict[str, Any] = {
-            "text": "hello",
-            "chat_id": "chat_1",
-            "user_id": "user_1",
-            "message_id": "msg_1",
-            "platform": "telegram",
-        }
-        defaults.update(kwargs)
-        if "timestamp" in defaults and isinstance(defaults["timestamp"], str):
-            from datetime import datetime
-
-            defaults["timestamp"] = datetime.fromisoformat(defaults["timestamp"])
-        filtered = {k: v for k, v in defaults.items() if k in _valid_keys}
-        return IncomingMessage(**filtered)
-
-    return _create
 
 
 @pytest.fixture(autouse=True)

@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from messaging.platforms.factory import create_messaging_platform
 from providers.base import BaseProvider
 from providers.deepseek import DeepSeekProvider
 from providers.llamacpp import LlamaCppProvider
@@ -65,7 +64,7 @@ def test_product_coverage_is_not_satisfied_by_prereq_probes() -> None:
             assert all("_e2e" in name for name in feature.product_e2e_tests), feature
 
 
-def test_provider_and_platform_registries_include_advertised_builtins() -> None:
+def test_provider_registry_includes_advertised_builtins() -> None:
     provider_classes = {
         "nvidia_nim": NvidiaNimProvider,
         "open_router": OpenRouterProvider,
@@ -76,8 +75,6 @@ def test_provider_and_platform_registries_include_advertised_builtins() -> None:
     }
     for provider_class in provider_classes.values():
         assert issubclass(provider_class, BaseProvider)
-
-    assert create_messaging_platform("not-a-platform") is None
 
 
 def _collect_test_names(root: Path) -> set[str]:

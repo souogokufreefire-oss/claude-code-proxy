@@ -31,7 +31,7 @@ class CLISessionManager:
         claude_bin: str = "claude",
         *,
         log_raw_cli_diagnostics: bool = False,
-        log_messaging_error_details: bool = False,
+        log_cli_error_details: bool = False,
     ):
         """
         Initialize the session manager.
@@ -48,7 +48,7 @@ class CLISessionManager:
         self.plans_directory = plans_directory
         self.claude_bin = claude_bin
         self._log_raw_cli_diagnostics = log_raw_cli_diagnostics
-        self._log_messaging_error_details = log_messaging_error_details
+        self._log_cli_error_details = log_cli_error_details
 
         self._sessions: dict[str, CLISession] = {}
         self._pending_sessions: dict[str, CLISession] = {}
@@ -136,7 +136,7 @@ class CLISessionManager:
                 try:
                     await session.stop()
                 except Exception as e:
-                    if self._log_messaging_error_details:
+                    if self._log_cli_error_details:
                         logger.error(
                             "Error stopping session: {}: {}",
                             type(e).__name__,

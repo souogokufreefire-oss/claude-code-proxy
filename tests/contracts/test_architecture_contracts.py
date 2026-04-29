@@ -13,7 +13,6 @@ def test_architecture_plan_exists() -> None:
     text = plan.read_text(encoding="utf-8")
     assert "Intended Dependency Direction" in text
     assert "Smoke Coverage Policy" in text
-    assert "providers.nvidia_nim.voice" in text
     assert "no dedicated smoke SSE shim" in text
 
 
@@ -65,5 +64,5 @@ def test_pyproject_first_party_packages_match_packaged_roots() -> None:
         for item in match.group("items").split(",")
         if item.strip()
     }
-    expected = {"api", "cli", "config", "core", "messaging", "providers", "smoke"}
+    expected = {"api", "cli", "config", "core", "providers", "smoke"}
     assert configured == expected

@@ -1,6 +1,6 @@
 """Stream/SSE contract tests. Strict transcript *ordering* is covered here for
-``SSEBuilder`` output; for transport-integrated ordering, add messaging or API
-integration tests.
+``SSEBuilder`` output; for transport-integrated ordering, add API integration
+tests.
 """
 
 from __future__ import annotations

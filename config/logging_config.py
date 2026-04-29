@@ -2,8 +2,8 @@
 
 All logs are written to server.log as JSON lines for full traceability.
 Stdlib logging is intercepted and funneled to loguru.
-Context vars (request_id, node_id, chat_id) from contextualize() are
-included at top level for easy grep/filter.
+Request context vars from contextualize() are included at top level for easy
+grep/filter.
 """
 
 import json
@@ -16,12 +16,8 @@ from loguru import logger
 _configured = False
 
 # Context keys we promote to top-level JSON for traceability
-_CONTEXT_KEYS = ("request_id", "node_id", "chat_id")
+_CONTEXT_KEYS = ("request_id",)
 
-_TELEGRAM_BOT_RE = re.compile(
-    r"(https?://api\.telegram\.org/)bot([0-9]+:[A-Za-z0-9_-]+)(/?)",
-    re.IGNORECASE,
-)
 # Authorization: Bearer <token> (HTTP client / proxy debug lines)
 _AUTH_BEARER_RE = re.compile(
     r"(\bAuthorization\s*:\s*Bearer\s+)([^\s'\"]+)",
@@ -31,8 +27,7 @@ _AUTH_BEARER_RE = re.compile(
 
 def _redact_sensitive_substrings(message: str) -> str:
     """Remove obvious API tokens and secrets before JSON log line emission."""
-    text = _TELEGRAM_BOT_RE.sub(r"\1bot<redacted>\3", message)
-    return _AUTH_BEARER_RE.sub(r"\1<redacted>", text)
+    return _AUTH_BEARER_RE.sub(r"\1<redacted>", message)
 
 
 def _serialize_with_context(record) -> str:
@@ -82,8 +77,8 @@ def configure_logging(
     Idempotent: skips if already configured (e.g. hot reload).
     Use force=True to reconfigure (e.g. in tests with a different log path).
 
-    When ``verbose_third_party`` is false, noisy HTTP and Telegram loggers are capped
-    at WARNING unless explicitly configured otherwise.
+    When ``verbose_third_party`` is false, noisy HTTP loggers are capped at
+    WARNING unless explicitly configured otherwise.
     """
     global _configured
     if _configured and not force:
@@ -116,8 +111,6 @@ def configure_logging(
         "httpcore",
         "httpcore.http11",
         "httpcore.connection",
-        "telegram",
-        "telegram.ext",
     )
     for name in third_party:
         logging.getLogger(name).setLevel(

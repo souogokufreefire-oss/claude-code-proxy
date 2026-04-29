@@ -20,14 +20,13 @@ DEFAULT_TARGETS = frozenset(
         "extensibility",
         "llamacpp",
         "lmstudio",
-        "messaging",
         "ollama",
         "providers",
         "rate_limit",
         "tools",
     }
 )
-SIDE_EFFECT_TARGETS = frozenset({"discord", "telegram", "voice"})
+SIDE_EFFECT_TARGETS = frozenset[str]()
 ALL_TARGETS = DEFAULT_TARGETS | SIDE_EFFECT_TARGETS
 TARGET_ALIASES = {
     "contract": "api",
@@ -54,22 +53,12 @@ TARGET_REQUIRED_ENV: dict[str, tuple[str, ...]] = {
     "clients": (),
     "config": (),
     "extensibility": (),
-    "messaging": (),
     "providers": ("configured provider credentials/endpoints or FCC_SMOKE_MODEL_*",),
     "rate_limit": ("configured provider model",),
     "tools": ("configured tool-capable provider model",),
     "lmstudio": ("LM_STUDIO_BASE_URL with a running LM Studio server",),
     "llamacpp": ("LLAMACPP_BASE_URL with a running llama-server",),
     "ollama": ("OLLAMA_BASE_URL with a running Ollama server",),
-    "telegram": (
-        "TELEGRAM_BOT_TOKEN",
-        "ALLOWED_TELEGRAM_USER_ID or FCC_SMOKE_TELEGRAM_CHAT_ID",
-    ),
-    "discord": (
-        "DISCORD_BOT_TOKEN",
-        "ALLOWED_DISCORD_CHANNELS or FCC_SMOKE_DISCORD_CHANNEL_ID",
-    ),
-    "voice": ("VOICE_NOTE_ENABLED=true", "FCC_SMOKE_RUN_VOICE=1"),
 }
 
 
@@ -89,7 +78,6 @@ class SmokeConfig:
     root: Path
     results_dir: Path
     live: bool
-    interactive: bool
     targets: frozenset[str]
     provider_matrix: frozenset[str]
     timeout_s: float
@@ -107,7 +95,6 @@ class SmokeConfig:
             root=root,
             results_dir=root / ".smoke-results",
             live=os.getenv("FCC_LIVE_SMOKE") == "1",
-            interactive=os.getenv("FCC_SMOKE_INTERACTIVE") == "1",
             targets=_parse_targets(os.getenv("FCC_SMOKE_TARGETS")),
             provider_matrix=_parse_csv(os.getenv("FCC_SMOKE_PROVIDER_MATRIX")),
             timeout_s=float(os.getenv("FCC_SMOKE_TIMEOUT_S", "45")),
