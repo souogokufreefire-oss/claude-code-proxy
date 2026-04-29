@@ -13,6 +13,7 @@ from api.dependencies import (
     get_provider_for_type,
     get_settings,
     request_model_override,
+    require_api_key,
     resolve_provider,
 )
 from config.nim import NimSettings
@@ -111,6 +112,31 @@ def test_request_model_override_returns_none_without_suffix():
     request = _request_with_headers({"x-api-key": "freecc"})
 
     assert request_model_override(request, settings) is None
+
+
+def test_require_api_key_uses_constant_time_comparison():
+    settings = _make_mock_settings(anthropic_auth_token="freecc")
+    request = _request_with_headers({"x-api-key": "freecc:nvidia_nim/meta/llama3"})
+
+    with patch("api.dependencies.secrets.compare_digest", return_value=True) as compare:
+        require_api_key(request, settings)
+
+    compare.assert_called_once_with(b"freecc", b"freecc")
+
+
+def test_require_api_key_rejects_invalid_token_after_constant_time_comparison():
+    settings = _make_mock_settings(anthropic_auth_token="freecc")
+    request = _request_with_headers({"authorization": "Bearer wrong-token"})
+
+    with (
+        patch("api.dependencies.secrets.compare_digest", return_value=False) as compare,
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        require_api_key(request, settings)
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Invalid API key"
+    compare.assert_called_once_with(b"wrong-token", b"freecc")
 
 
 @pytest.mark.asyncio

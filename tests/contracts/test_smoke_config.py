@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from smoke.lib.config import (
     DEFAULT_TARGETS,
     PROVIDER_SMOKE_DEFAULT_MODELS,
@@ -61,6 +63,34 @@ def test_ollama_provider_matrix_filters_models() -> None:
     config = _smoke_config(provider_matrix=frozenset({"ollama"}))
 
     assert [model.provider for model in config.provider_models()] == ["ollama"]
+
+
+def test_load_rejects_invalid_timeout(monkeypatch) -> None:
+    monkeypatch.setenv("FCC_SMOKE_TIMEOUT_S", "not-a-number")
+
+    with pytest.raises(ValueError, match="FCC_SMOKE_TIMEOUT_S must be a number"):
+        SmokeConfig.load()
+
+
+def test_provider_models_reject_blank_model() -> None:
+    config = _smoke_config(settings=_settings(model=" "))
+
+    with pytest.raises(ValueError, match="MODEL must not be empty"):
+        config.provider_models()
+
+
+def test_provider_models_reject_model_without_provider_prefix() -> None:
+    config = _smoke_config(settings=_settings(model="llama3.1"))
+
+    with pytest.raises(ValueError, match="MODEL must use provider/model format"):
+        config.provider_models()
+
+
+def test_provider_models_reject_unknown_provider_prefix() -> None:
+    config = _smoke_config(settings=_settings(model="unknown_provider/model"))
+
+    with pytest.raises(ValueError, match="MODEL has unsupported provider"):
+        config.provider_models()
 
 
 def test_provider_smoke_models_cover_configured_providers_independent_of_model_mapping(

@@ -1,5 +1,7 @@
 """Dependency injection for FastAPI."""
 
+import secrets
+
 from fastapi import Depends, HTTPException, Request
 from loguru import logger
 from starlette.applications import Starlette
@@ -117,7 +119,9 @@ def require_api_key(
     if token and ":" in token:
         token = token.split(":", 1)[0]
 
-    if token != anthropic_auth_token:
+    if not secrets.compare_digest(
+        token.encode("utf-8"), anthropic_auth_token.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
