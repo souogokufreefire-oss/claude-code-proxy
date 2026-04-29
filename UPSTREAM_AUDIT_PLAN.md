@@ -103,6 +103,16 @@ together.
     namespaces while leaving already-qualified names unchanged.
   - Tests: mapped families, already-qualified models, empty/non-string inputs.
 
+- [x] PR #271 / Issue #260: multimodal user image support for OpenAI-compatible
+  conversion
+  - Local gap: user `image` content blocks from VS Code/Claude Code were rejected
+    before NVIDIA NIM dispatch.
+  - Expected change: convert Anthropic user image blocks to OpenAI `image_url`
+    parts for base64 and URL sources while keeping text-only messages as flat
+    strings.
+  - Tests: base64 images, URL images, mixed text/images, invalid source type,
+    injection path coverage, and assistant image rejection.
+
 ## Design Review Required
 
 - [x] PR #205: API key fallback and usage tracking

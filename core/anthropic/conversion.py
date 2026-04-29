@@ -236,6 +236,74 @@ def _assert_no_forbidden_assistant_block(block: Any) -> None:
         )
 
 
+def _convert_user_image_block(block: Any) -> dict[str, Any]:
+    source = get_block_attr(block, "source")
+    if not isinstance(source, dict):
+        raise OpenAIConversionError(
+            "User message image blocks must include an Anthropic image source."
+        )
+
+    source_type = source.get("type")
+    if source_type == "base64":
+        media_type = source.get("media_type")
+        data = source.get("data")
+        if not isinstance(media_type, str) or not media_type.strip():
+            raise OpenAIConversionError(
+                "Base64 image blocks must include a non-empty media_type."
+            )
+        if not isinstance(data, str) or not data.strip():
+            raise OpenAIConversionError(
+                "Base64 image blocks must include non-empty data."
+            )
+        url = f"data:{media_type};base64,{data}"
+    elif source_type == "url":
+        source_url = source.get("url")
+        if not isinstance(source_url, str) or not source_url.strip():
+            raise OpenAIConversionError(
+                "URL image blocks must include a non-empty url."
+            )
+        url = source_url
+    else:
+        raise OpenAIConversionError(
+            "Unsupported user image source type for OpenAI chat conversion: "
+            f"{source_type!r}."
+        )
+
+    return {"type": "image_url", "image_url": {"url": url}}
+
+
+@dataclass
+class _UserContentParts:
+    text_parts: list[str] = field(default_factory=list)
+    multipart: list[dict[str, Any]] = field(default_factory=list)
+    has_image: bool = False
+
+    def append_text(self, text: str) -> None:
+        if self.has_image:
+            self.multipart.append({"type": "text", "text": text})
+        else:
+            self.text_parts.append(text)
+
+    def append_image(self, block: Any) -> None:
+        if not self.has_image:
+            self.multipart.extend(
+                {"type": "text", "text": text} for text in self.text_parts
+            )
+            self.text_parts.clear()
+            self.has_image = True
+        self.multipart.append(_convert_user_image_block(block))
+
+    def flush_to(self, result: list[dict[str, Any]]) -> None:
+        if self.has_image:
+            if self.multipart:
+                result.append({"role": "user", "content": list(self.multipart)})
+        elif self.text_parts:
+            result.append({"role": "user", "content": "\n".join(self.text_parts)})
+        self.text_parts.clear()
+        self.multipart.clear()
+        self.has_image = False
+
+
 class AnthropicToOpenAIConverter:
     """Convert Anthropic message format to OpenAI-compatible format."""
 
@@ -497,24 +565,18 @@ class AnthropicToOpenAIConverter:
             }
 
         result: list[dict[str, Any]] = []
-        text_parts: list[str] = []
+        user_parts = _UserContentParts()
         cleared = False
 
         def flush_text() -> None:
-            if text_parts:
-                result.append({"role": "user", "content": "\n".join(text_parts)})
-                text_parts.clear()
+            user_parts.flush_to(result)
 
         for block in content:
             block_type = get_block_type(block)
             if block_type == "text":
-                text_parts.append(get_block_attr(block, "text", ""))
+                user_parts.append_text(get_block_attr(block, "text", ""))
             elif block_type == "image":
-                raise OpenAIConversionError(
-                    "User message image blocks are not supported for OpenAI chat "
-                    "conversion; use a vision-capable native Anthropic provider or "
-                    "extend the converter."
-                )
+                user_parts.append_image(block)
             elif block_type == "tool_result":
                 flush_text()
                 tool_content = get_block_attr(block, "content", "")
@@ -547,24 +609,18 @@ class AnthropicToOpenAIConverter:
     @staticmethod
     def _convert_user_message(content: list[Any]) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []
-        text_parts: list[str] = []
+        user_parts = _UserContentParts()
 
         def flush_text() -> None:
-            if text_parts:
-                result.append({"role": "user", "content": "\n".join(text_parts)})
-                text_parts.clear()
+            user_parts.flush_to(result)
 
         for block in content:
             block_type = get_block_type(block)
 
             if block_type == "text":
-                text_parts.append(get_block_attr(block, "text", ""))
+                user_parts.append_text(get_block_attr(block, "text", ""))
             elif block_type == "image":
-                raise OpenAIConversionError(
-                    "User message image blocks are not supported for OpenAI chat "
-                    "conversion; use a vision-capable native Anthropic provider or "
-                    "extend the converter."
-                )
+                user_parts.append_image(block)
             elif block_type == "tool_result":
                 flush_text()
                 tool_content = get_block_attr(block, "content", "")

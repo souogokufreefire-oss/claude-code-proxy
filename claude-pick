@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# claude-pick — Interactive model picker for free-claude-code
+# claude-pick — Interactive model picker for claude-code-proxy
 # Usage: claude-pick [extra claude args...]
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODELS_FILE="$SCRIPT_DIR/nvidia_nim_models.json"
 ENV_FILE="${CLAUDE_PICK_ENV_FILE:-$SCRIPT_DIR/.env}"
 PORT="${CLAUDE_PICK_PORT:-8082}"
 BASE_URL="http://localhost:$PORT"
+NVIDIA_NIM_MODELS_URL="https://integrate.api.nvidia.com/v1/models"
 OPENROUTER_MODELS_URL="https://openrouter.ai/api/v1/models"
 DEFAULT_LM_STUDIO_BASE_URL="http://localhost:1234/v1"
 DEFAULT_LLAMACPP_BASE_URL="http://localhost:8080/v1"
@@ -59,21 +59,18 @@ for item in payload.get("data", []):
 }
 
 get_nvidia_models() {
-    if [[ ! -f "$MODELS_FILE" ]]; then
-        echo "Error: $MODELS_FILE not found." >&2
-        echo "Run: curl \"https://integrate.api.nvidia.com/v1/models\" > nvidia_nim_models.json" >&2
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "Error: curl is required for NVIDIA NIM model discovery." >&2
         exit 1
     fi
 
-    run_python -c '
-import json, sys
-with open(sys.argv[1], "r", encoding="utf-8") as f:
-    payload = json.load(f)
-for item in payload.get("data", []):
-    model_id = item.get("id")
-    if model_id:
-        print(model_id)
-' "$MODELS_FILE"
+    local response
+    if ! response="$(curl -fsSL "$NVIDIA_NIM_MODELS_URL")"; then
+        echo "Error: Failed to fetch NVIDIA NIM models." >&2
+        exit 1
+    fi
+
+    parse_models_from_json <<< "$response"
 }
 
 get_openrouter_models() {
