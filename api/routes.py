@@ -1,7 +1,6 @@
 """FastAPI route handlers."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from loguru import logger
+from fastapi import APIRouter, Depends, Request, Response
 
 from config.settings import Settings
 from core.anthropic import get_token_count
@@ -150,21 +149,3 @@ async def list_models(_auth=Depends(require_api_key)):
         has_more=False,
         last_id=SUPPORTED_CLAUDE_MODELS[-1].id if SUPPORTED_CLAUDE_MODELS else None,
     )
-
-
-@router.post("/stop")
-async def stop_cli(request: Request, _auth=Depends(require_api_key)):
-    """Stop all CLI sessions and pending tasks."""
-    handler = getattr(request.app.state, "message_handler", None)
-    if not handler:
-        # Fallback if messaging not initialized
-        cli_manager = getattr(request.app.state, "cli_manager", None)
-        if cli_manager:
-            await cli_manager.stop_all()
-            logger.info("STOP_CLI: source=cli_manager cancelled_count=N/A")
-            return {"status": "stopped", "source": "cli_manager"}
-        raise HTTPException(status_code=503, detail="Messaging system not initialized")
-
-    count = await handler.stop_all_tasks()
-    logger.info("STOP_CLI: source=handler cancelled_count={}", count)
-    return {"status": "stopped", "cancelled_count": count}
