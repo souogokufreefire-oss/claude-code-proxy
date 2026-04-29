@@ -18,7 +18,9 @@ from .provider_ids import SUPPORTED_PROVIDER_IDS
 def _env_files() -> tuple[Path, ...]:
     """Return env file paths in priority order (later overrides earlier)."""
     files: list[Path] = [
+        # Legacy config path is read first; the renamed proxy config overrides it.
         Path.home() / ".config" / "free-claude-code" / ".env",
+        Path.home() / ".config" / "claude-code-proxy" / ".env",
         Path(".env"),
     ]
     if explicit := os.environ.get("FCC_ENV_FILE"):

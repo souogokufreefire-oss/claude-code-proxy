@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 Free Claude Code
+# Claude Code Proxy
 
 Use Claude Code CLI, VS Code, or JetBrains ACP through your own Anthropic-compatible proxy.
 
@@ -12,14 +12,14 @@ Use Claude Code CLI, VS Code, or JetBrains ACP through your own Anthropic-compat
 [![Code style: Ruff](https://img.shields.io/badge/code%20formatting-ruff-f5a623.svg?style=for-the-badge)](https://github.com/astral-sh/ruff)
 [![Logging: Loguru](https://img.shields.io/badge/logging-loguru-4ecdc4.svg?style=for-the-badge)](https://github.com/Delgan/loguru)
 
-Free Claude Code routes Anthropic Messages API traffic from Claude Code to NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, or Ollama. It keeps Claude Code's client-side protocol stable while letting you choose free, paid, or local models.
+Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, or Ollama. It keeps Claude Code's client-side protocol stable while letting you choose hosted or local models.
 
 [Quick Start](#quick-start) · [Providers](#choose-a-provider) · [Clients](#connect-claude-code) · [Troubleshooting](#troubleshooting) · [Development](#development)
 
 </div>
 
 <div align="center">
-  <img src="pic.png" alt="Free Claude Code in action" width="700">
+  <img src="pic.png" alt="Claude Code Proxy in action" width="700">
 </div>
 
 ## What You Get
@@ -54,8 +54,8 @@ uv python install 3.14
 ### 2. Clone And Configure
 
 ```bash
-git clone https://github.com/Alishahryar1/free-claude-code.git
-cd free-claude-code
+git clone https://github.com/Alishahryar1/free-claude-code.git claude-code-proxy
+cd claude-code-proxy
 cp .env.example .env
 ```
 
@@ -85,11 +85,11 @@ Package install alternative:
 
 ```bash
 uv tool install git+https://github.com/Alishahryar1/free-claude-code.git
-fcc-init
-free-claude-code
+ccp-init
+claude-code-proxy
 ```
 
-`fcc-init` creates `~/.config/free-claude-code/.env` from the bundled template.
+`ccp-init` creates `~/.config/claude-code-proxy/.env` from the bundled template. The legacy `fcc-init` and `free-claude-code` script names are still installed as compatibility aliases.
 
 ### 4. Run Claude Code
 
@@ -288,7 +288,7 @@ Code process without restarting the service or editing `.env`.
 
 ```bash
 brew install fzf
-alias claude-pick="/absolute/path/to/free-claude-code/claude-pick"
+alias claude-pick="/absolute/path/to/claude-code-proxy/claude-pick"
 claude-pick
 ```
 
@@ -401,6 +401,14 @@ Check:
 
 Errors like `incomplete chunked read`, `server disconnected`, or a peer closing the body usually come from the upstream provider or gateway. Reduce concurrency, raise timeouts, or retry later.
 
+### Provider rate limits or overloads
+
+Errors like `Provider rate limit reached`, HTTP 429, HTTP 502/503/504, or overload messages come from the selected upstream provider. The proxy retries retryable failures with exponential backoff and honors upstream `Retry-After` headers. If the error still reaches Claude Code, lower `PROVIDER_MAX_CONCURRENCY`, lower `PROVIDER_RATE_LIMIT`, increase retry settings, or route that request to another provider/model with an auth-token suffix.
+
+### Health checks work but authenticated probes return 401
+
+When `ANTHROPIC_AUTH_TOKEN` is set, every protected route needs the same token in `x-api-key`, `authorization: Bearer ...`, or `anthropic-auth-token`. For request-scoped model routing, append the model after a colon, for example `freecc:open_router/google/gemma-4-26b-a4b-it:free`; the proxy validates only the token prefix.
+
 ### Tool calls work on one model but not another
 
 Tool support is model and provider dependent. Some OpenAI-compatible models emit malformed tool-call deltas, omit tool names, or return tool calls as plain text. Try another model or provider before assuming the proxy is broken.
@@ -416,7 +424,7 @@ Claude Code CLI / IDE
         |
         | Anthropic Messages API
         v
-Free Claude Code proxy (:8082)
+Claude Code Proxy (:8082)
         |
         | provider-specific request/stream adapter
         v
@@ -437,12 +445,12 @@ Important pieces:
 ### Project Structure
 
 ```text
-free-claude-code/
+claude-code-proxy/
 ├── server.py              # ASGI entry point
 ├── api/                   # FastAPI routes, service layer, routing, optimizations
 ├── core/                  # Shared Anthropic protocol helpers and SSE utilities
 ├── providers/             # Provider transports, registry, rate limiting
-├── cli/                   # Package entry points and Claude process management
+├── cli/                   # Package entry points
 ├── config/                # Settings, provider catalog, logging
 └── tests/                 # Unit and contract tests
 ```
@@ -462,8 +470,9 @@ Run them in that order before pushing. CI enforces the same checks.
 
 `pyproject.toml` installs:
 
-- `free-claude-code`: starts the proxy with configured host and port.
-- `fcc-init`: creates the user config template at `~/.config/free-claude-code/.env`.
+- `claude-code-proxy`: starts the proxy with configured host and port.
+- `ccp-init`: creates the user config template at `~/.config/claude-code-proxy/.env`.
+- `free-claude-code` and `fcc-init`: compatibility aliases for the old package name.
 
 ### Extending
 

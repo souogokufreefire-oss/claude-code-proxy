@@ -16,6 +16,13 @@ def test_architecture_plan_exists() -> None:
     assert "no dedicated smoke SSE shim" in text
 
 
+def test_agent_directives_are_synced() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    assert (repo_root / "AGENTS.md").read_text(encoding="utf-8") == (
+        repo_root / "CLAUDE.md"
+    ).read_text(encoding="utf-8")
+
+
 def test_smoke_lib_has_no_sse_shim_module() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     assert not (repo_root / "smoke" / "lib" / "sse.py").exists()
@@ -51,6 +58,20 @@ def test_root_env_example_is_packaged_for_fcc_init() -> None:
     ]
 
     assert force_include[".env.example"] == "cli/env.example"
+
+
+def test_package_metadata_matches_proxy_identity() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    pyproject = tomllib.loads((repo_root / "pyproject.toml").read_text("utf-8"))
+    project = pyproject["project"]
+    scripts = project["scripts"]
+
+    assert project["name"] == "claude-code-proxy"
+    assert "Anthropic-compatible Claude Code proxy" in project["description"]
+    assert scripts["claude-code-proxy"] == "cli.entrypoints:serve"
+    assert scripts["ccp-init"] == "cli.entrypoints:init"
+    assert scripts["free-claude-code"] == "cli.entrypoints:serve"
+    assert scripts["fcc-init"] == "cli.entrypoints:init"
 
 
 def test_local_web_tools_are_documented_as_disabled_by_default() -> None:

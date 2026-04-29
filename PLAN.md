@@ -6,7 +6,7 @@ the project modular as providers, clients, and smoke tests grow.
 
 ## Current Product Shape
 
-`free-claude-code` is an Anthropic-compatible proxy:
+`claude-code-proxy` is an Anthropic-compatible proxy:
 
 - `api/` owns the HTTP routes, request orchestration, model routing, auth, and
   server lifecycle.
@@ -69,7 +69,8 @@ HTTP models and `create_app` only (not `app`, not those helpers).
 - `providers/`: provider descriptors, credential resolution, transport
   factories, scoped rate limiters, upstream request builders, and stream
   converters.
-- `cli/`: packaged user-facing entrypoints (`free-claude-code`, `fcc-init`).
+- `cli/`: packaged user-facing entrypoints (`claude-code-proxy`, `ccp-init`)
+  plus legacy script aliases.
 
 ## Smoke Coverage Policy
 

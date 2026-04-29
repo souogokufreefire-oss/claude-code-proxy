@@ -1,1 +1,1 @@
-"""Installed package entry points for the free-claude-code proxy."""
+"""Installed package entry points for the claude-code-proxy service."""

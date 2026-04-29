@@ -46,7 +46,7 @@ Default targets exercise the proxy without external side effects:
 | --- | --- | --- |
 | `api` | messages, count_tokens full payload, errors, optimizations | configured provider only for streaming messages |
 | `auth` | x-api-key, bearer, anthropic-auth-token, invalid/missing auth | none; test sets an isolated token |
-| `cli` | `fcc-init`, server entrypoint, external Claude CLI adaptive thinking | Claude CLI binary and provider only for real CLI |
+| `cli` | `ccp-init`, server entrypoint, external Claude CLI adaptive thinking | Claude CLI binary and provider only for real CLI |
 | `clients` | VS Code and JetBrains protocol payloads | configured provider |
 | `config` | env precedence, removed-env migration, proxy/timeouts | none |
 | `extensibility` | provider registry construction | none |
@@ -96,7 +96,7 @@ uv run pytest smoke/product -n 0 -s --tb=short
 
 Run smoke the same way you run tests (`uv run pytest smoke` from the repo). Child
 processes use the **same Python interpreter** as the test runner, not nested
-`uv run`, so Windows does not try to replace `free-claude-code.exe` while it is
+`uv run`, so Windows does not try to replace `claude-code-proxy.exe` while it is
 locked.
 
 ## Failure Classes
