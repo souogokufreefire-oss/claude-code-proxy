@@ -309,6 +309,68 @@ Use Claude model names (e.g., `claude-sonnet-4-5-20250929`, `claude-opus-4-20250
 </details>
 
 <details>
+<summary><b>Groq</b></summary>
+
+Get a key at [console.groq.com/keys](https://console.groq.com/keys).
+
+```dotenv
+GROQ_API_KEY="***"
+MODEL="groq/llama-4-maverick-17b-128e"
+```
+
+Groq uses LPU inference — the fastest tokens-per-second of any provider. The proxy converts Anthropic Messages to OpenAI chat format and streams back as Anthropic SSE. Popular models:
+
+- `groq/llama-4-maverick-17b-128e`
+- `groq/llama-4-scout-17b-16e`
+- `groq/deepseek-r1-distill-llama-70b`
+- `groq/qwen-2.5-coder-32b`
+
+Groq doesn't return a native `reasoning_content` field. Reasoning models emit think tags in the content stream, which the proxy's parser handles automatically.
+
+</details>
+
+<details>
+<summary><b>Cerebras</b></summary>
+
+Get a free key at [cloud.cerebras.ai](https://cloud.cerebras.ai).
+
+```dotenv
+CEREBRAS_API_KEY="***"
+MODEL="cerebras/llama-4-maverick-17b"
+```
+
+Cerebras uses Wafer-Scale Engine inference — extreme throughput for supported models. Supports `reasoning_effort` for thinking control. Popular models:
+
+- `cerebras/llama-4-maverick-17b`
+- `cerebras/llama-4-scout-17b`
+- `cerebras/zai-glm-4.7`
+- `cerebras/deepseek-r1`
+
+Non-standard parameters like `clear_thinking` go through `extra_body` automatically.
+
+</details>
+
+<details>
+<summary><b>Together AI</b></summary>
+
+Get a key at [api.together.xyz](https://api.together.xyz).
+
+```dotenv
+TOGETHER_API_KEY="***"
+MODEL="together/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+```
+
+Together AI hosts the widest catalog of open-weight models with an OpenAI-compatible API. Model names use `vendor/model-name` format. Popular models:
+
+- `together/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8`
+- `together/deepseek-ai/DeepSeek-V3`
+- `together/Qwen/Qwen2.5-Coder-32B-Instruct`
+
+Standard OpenAI-compatible API — the most vanilla of the OpenAI Chat providers.
+
+</details>
+
+<details>
 <summary><b>Mix providers by model tier</b></summary>
 
 Each tier can use a different provider:
