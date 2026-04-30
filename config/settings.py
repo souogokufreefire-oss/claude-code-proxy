@@ -187,6 +187,13 @@ class Settings(BaseSettings):
     )
     vllm_proxy: str = Field(default="", validation_alias="VLLM_PROXY")
 
+    # ==================== CLIProxyAPI Config ====================
+    cliproxyapi_base_url: str = Field(
+        default="http://localhost:8317/v1",
+        validation_alias="CLIPROXYAPI_BASE_URL",
+    )
+    cliproxyapi_proxy: str = Field(default="", validation_alias="CLIPROXYAPI_PROXY")
+
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
     provider_rate_window: int = Field(

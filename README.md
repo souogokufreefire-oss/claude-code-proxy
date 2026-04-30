@@ -128,6 +128,7 @@ provider_id/model/name
 | FriendliAI | `friendliai/...` | Anthropic Messages | `FRIENDLIAI_API_KEY` | `https://api.friendli.ai/serverless/v1` |
 | Fireworks AI | `fireworks/...` | Anthropic Messages | `FIREWORKS_API_KEY` | `https://api.fireworks.ai/inference/v1` |
 | vLLM | `vllm/...` | Anthropic Messages | none (local) | `http://localhost:8000/v1` |
+| CLIProxyAPI | `cliproxyapi/...` | Anthropic Messages | none (local, OAuth) | `http://localhost:8317/v1` |
 
 <details>
 <summary><b>NVIDIA NIM</b></summary>
@@ -281,6 +282,22 @@ Prefer models with tool-use support for Claude Code workflows.
 </details>
 
 <details>
+<summary><b>CLIProxyAPI</b></summary>
+
+Install [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), authenticate with Claude Code, then configure:
+
+```dotenv
+CLIPROXYAPI_BASE_URL="http://localhost:8317/v1"
+MODEL="cliproxyapi/claude-sonnet-4-5-20250929"
+```
+
+CLIProxyAPI wraps your Claude Pro/Max OAuth credentials and exposes an Anthropic Messages API. Set `auth.providers: []` in CLIProxyAPI's config to disable key validation. Uses `x-api-key` auth (not Bearer).
+
+Use Claude model names (e.g., `claude-sonnet-4-5-20250929`, `claude-opus-4-20250514`).
+
+</details>
+
+<details>
 <summary><b>Mix providers by model tier</b></summary>
 
 Each tier can use a different provider:
@@ -395,6 +412,7 @@ FIREWORKS_API_KEY=***
 FIREWORKS_API_KEYS=***
 FIREWORKS_KEY_USAGE_LIMIT=0
 VLLM_BASE_URL="http://localhost:8000/v1"
+CLIPROXYAPI_BASE_URL="http://localhost:8317/v1"
 ```
 
 Hosted providers can use fallback keys with comma or whitespace separated
@@ -413,6 +431,7 @@ LLAMACPP_PROXY=""
 FRIENDLIAI_PROXY=""
 FIREWORKS_PROXY=""
 VLLM_PROXY=""
+CLIPROXYAPI_PROXY=""
 ```
 
 ### Rate Limits And Timeouts
@@ -506,7 +525,7 @@ Claude Code Proxy (:8082)
         |
         | provider-specific request/stream adapter
         v
-NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM
+NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI
 ```
 
 Important pieces:
@@ -514,7 +533,7 @@ Important pieces:
 - FastAPI exposes Anthropic-compatible routes such as `/v1/messages`, `/v1/messages/count_tokens`, and `/v1/models`.
 - Model routing resolves the Claude model name to `MODEL_OPUS`, `MODEL_SONNET`, `MODEL_HAIKU`, or `MODEL`.
 - NIM uses OpenAI chat streaming translated into Anthropic SSE.
-- OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, and vLLM use Anthropic Messages style transports.
+- OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, and CLIProxyAPI use Anthropic Messages style transports.
 - The proxy normalizes thinking blocks, tool calls, token usage metadata, and provider errors into the shape Claude Code expects.
 - Request optimizations answer trivial Claude Code probes locally to save latency and quota.
 

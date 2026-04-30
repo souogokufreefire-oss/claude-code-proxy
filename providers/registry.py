@@ -73,6 +73,12 @@ def _create_vllm(config: ProviderConfig, _settings: Settings) -> BaseProvider:
     return VllmProvider(config)
 
 
+def _create_cliproxyapi(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.cliproxyapi import CLIProxyAPIProvider
+
+    return CLIProxyAPIProvider(config)
+
+
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "nvidia_nim": _create_nvidia_nim,
     "open_router": _create_open_router,
@@ -83,6 +89,7 @@ PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "friendliai": _create_friendliai,
     "fireworks": _create_fireworks,
     "vllm": _create_vllm,
+    "cliproxyapi": _create_cliproxyapi,
 }
 
 if set(PROVIDER_DESCRIPTORS) != set(SUPPORTED_PROVIDER_IDS) or set(

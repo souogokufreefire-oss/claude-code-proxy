@@ -24,6 +24,7 @@ OLLAMA_DEFAULT_BASE = "http://localhost:11434"
 FRIENDLIAI_DEFAULT_BASE = "https://api.friendli.ai/serverless/v1"
 FIREWORKS_DEFAULT_BASE = "https://api.fireworks.ai/inference/v1"
 VLLM_DEFAULT_BASE = "http://localhost:8000/v1"
+CLIPROXYAPI_DEFAULT_BASE = "http://localhost:8317/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,6 +146,22 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         base_url_attr="vllm_base_url",
         proxy_attr="vllm_proxy",
         capabilities=("chat", "streaming", "tools", "native_anthropic", "local"),
+    ),
+    "cliproxyapi": ProviderDescriptor(
+        provider_id="cliproxyapi",
+        transport_type="anthropic_messages",
+        static_credential="dummy",
+        default_base_url=CLIPROXYAPI_DEFAULT_BASE,
+        base_url_attr="cliproxyapi_base_url",
+        proxy_attr="cliproxyapi_proxy",
+        capabilities=(
+            "chat",
+            "streaming",
+            "tools",
+            "thinking",
+            "native_anthropic",
+            "local",
+        ),
     ),
 }
 
