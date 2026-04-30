@@ -22,6 +22,7 @@ LMSTUDIO_DEFAULT_BASE = "http://localhost:1234/v1"
 LLAMACPP_DEFAULT_BASE = "http://localhost:8080/v1"
 OLLAMA_DEFAULT_BASE = "http://localhost:11434"
 FRIENDLIAI_DEFAULT_BASE = "https://api.friendli.ai/serverless/v1"
+FIREWORKS_DEFAULT_BASE = "https://api.fireworks.ai/inference/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +122,18 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         key_usage_limit_attr="friendliai_key_usage_limit",
         default_base_url=FRIENDLIAI_DEFAULT_BASE,
         proxy_attr="friendliai_proxy",
+        capabilities=("chat", "streaming", "tools", "thinking", "native_anthropic"),
+    ),
+    "fireworks": ProviderDescriptor(
+        provider_id="fireworks",
+        transport_type="anthropic_messages",
+        credential_env="FIREWORKS_API_KEY",
+        credential_url="https://fireworks.ai/account/api-keys",
+        credential_attr="fireworks_api_key",
+        credential_list_attr="fireworks_api_keys",
+        key_usage_limit_attr="fireworks_key_usage_limit",
+        default_base_url=FIREWORKS_DEFAULT_BASE,
+        proxy_attr="fireworks_proxy",
         capabilities=("chat", "streaming", "tools", "thinking", "native_anthropic"),
     ),
 }

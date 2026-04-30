@@ -170,6 +170,16 @@ class Settings(BaseSettings):
     llamacpp_proxy: str = Field(default="", validation_alias="LLAMACPP_PROXY")
     friendliai_proxy: str = Field(default="", validation_alias="FRIENDLIAI_PROXY")
 
+    # ==================== Fireworks AI Config ====================
+    fireworks_api_key: str = Field(default="", validation_alias="FIREWORKS_API_KEY")
+    fireworks_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="FIREWORKS_API_KEYS"
+    )
+    fireworks_key_usage_limit: int = Field(
+        default=0, validation_alias="FIREWORKS_KEY_USAGE_LIMIT"
+    )
+    fireworks_proxy: str = Field(default="", validation_alias="FIREWORKS_PROXY")
+
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
     provider_rate_window: int = Field(
@@ -300,6 +310,7 @@ class Settings(BaseSettings):
         "deepseek_api_keys",
         "nvidia_nim_api_keys",
         "friendliai_api_keys",
+        "fireworks_api_keys",
         mode="before",
     )
     @classmethod
@@ -319,6 +330,7 @@ class Settings(BaseSettings):
         "deepseek_key_usage_limit",
         "nvidia_nim_key_usage_limit",
         "friendliai_key_usage_limit",
+        "fireworks_key_usage_limit",
     )
     @classmethod
     def validate_key_usage_limit(cls, v: int) -> int:

@@ -61,6 +61,12 @@ def _create_friendliai(config: ProviderConfig, _settings: Settings) -> BaseProvi
     return FriendliAIProvider(config)
 
 
+def _create_fireworks(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.fireworks import FireworksProvider
+
+    return FireworksProvider(config)
+
+
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "nvidia_nim": _create_nvidia_nim,
     "open_router": _create_open_router,
@@ -69,6 +75,7 @@ PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "llamacpp": _create_llamacpp,
     "ollama": _create_ollama,
     "friendliai": _create_friendliai,
+    "fireworks": _create_fireworks,
 }
 
 if set(PROVIDER_DESCRIPTORS) != set(SUPPORTED_PROVIDER_IDS) or set(
