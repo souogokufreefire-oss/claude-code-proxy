@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.1.0 - 2026-04-30
+
+Provider expansion release for hosted and local upstream backends.
+
+### Added
+
+- FriendliAI provider using native Anthropic Messages transport with bearer
+  authentication and fallback key rotation.
+- Fireworks AI provider using native Anthropic Messages transport at the
+  `/inference/v1` endpoint with bearer authentication.
+- vLLM local provider using native Anthropic Messages transport at the
+  configured local `/v1` endpoint.
+- CLIProxyAPI local provider for routing through Claude OAuth-backed
+  Anthropic-compatible API servers.
+- Groq provider using OpenAI-compatible chat completions with Anthropic request
+  conversion and streaming SSE translation.
+- Cerebras provider using OpenAI-compatible chat completions, including
+  retry-without-`reasoning_effort` handling for models that reject that field.
+- Together AI provider using OpenAI-compatible chat completions with Anthropic
+  request conversion and streaming SSE translation.
+- Provider catalog, settings, `.env.example`, README, unit tests, and smoke
+  capability metadata for the new providers.
+
+### Changed
+
+- Expanded supported provider IDs from six to thirteen:
+  `nvidia_nim`, `open_router`, `deepseek`, `lmstudio`, `llamacpp`, `ollama`,
+  `friendliai`, `fireworks`, `vllm`, `cliproxyapi`, `groq`, `cerebras`, and
+  `together`.
+- Documented provider-specific configuration examples for FriendliAI,
+  Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, and Together AI.
+- Kept OpenAI-compatible provider request bodies on `max_tokens` for SDK and
+  provider compatibility.
+
+### Verified
+
+- Local CI checks passed: formatting, linting, type checking, and the full unit
+  test suite.
+- Live product smoke coverage passed for configured provider targets against a
+  local proxy; unavailable or unconfigured provider targets were skipped by the
+  smoke configuration.
+
 ## 2.0.0 - 2026-04-29
 
 First `claude-code-proxy` release after narrowing the repository to the proxy

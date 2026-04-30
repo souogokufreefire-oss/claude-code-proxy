@@ -12,7 +12,7 @@ Use Claude Code CLI, VS Code, or JetBrains ACP through your own Anthropic-compat
 [![Code style: Ruff](https://img.shields.io/badge/code%20formatting-ruff-f5a623.svg?style=for-the-badge)](https://github.com/astral-sh/ruff)
 [![Logging: Loguru](https://img.shields.io/badge/logging-loguru-4ecdc4.svg?style=for-the-badge)](https://github.com/Delgan/loguru)
 
-Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, or Ollama. It keeps Claude Code's client-side protocol stable while letting you choose hosted or local models.
+Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to hosted and local upstream providers. It keeps Claude Code's client-side protocol stable while letting you choose NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, or Together AI.
 
 [Quick Start](#quick-start) · [Providers](#choose-a-provider) · [Clients](#connect-claude-code) · [Troubleshooting](#troubleshooting) · [Development](#development)
 
@@ -25,7 +25,7 @@ Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to NVID
 ## What You Get
 
 - Drop-in proxy for Claude Code's Anthropic API calls.
-- Six provider backends: NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, and Ollama.
+- Thirteen provider backends: NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, and Together AI.
 - Per-model routing: send Opus, Sonnet, Haiku, and fallback traffic to different providers.
 - Streaming, tool use, reasoning/thinking block handling, and local request optimizations.
 
@@ -286,7 +286,7 @@ VLLM_BASE_URL="http://localhost:8000/v1"
 MODEL="vllm/meta-llama/Llama-4-Maverick-17B-128E-Instruct"
 ```
 
-vLLM exposes a native Anthropic Messages endpoint at `/v1/messages` (since v0.8+). No API key is required by default. If you set `VLLM_API_KEY` on the server, use `VLLM_API_KEY` in the proxy's `.env`.
+vLLM exposes a native Anthropic Messages endpoint at `/v1/messages` (since v0.8+). The proxy treats vLLM as a local provider and does not require an API key by default.
 
 Prefer models with tool-use support for Claude Code workflows.
 
