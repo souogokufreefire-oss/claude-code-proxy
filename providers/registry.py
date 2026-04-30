@@ -67,6 +67,12 @@ def _create_fireworks(config: ProviderConfig, _settings: Settings) -> BaseProvid
     return FireworksProvider(config)
 
 
+def _create_vllm(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.vllm import VllmProvider
+
+    return VllmProvider(config)
+
+
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "nvidia_nim": _create_nvidia_nim,
     "open_router": _create_open_router,
@@ -76,6 +82,7 @@ PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "ollama": _create_ollama,
     "friendliai": _create_friendliai,
     "fireworks": _create_fireworks,
+    "vllm": _create_vllm,
 }
 
 if set(PROVIDER_DESCRIPTORS) != set(SUPPORTED_PROVIDER_IDS) or set(

@@ -180,6 +180,13 @@ class Settings(BaseSettings):
     )
     fireworks_proxy: str = Field(default="", validation_alias="FIREWORKS_PROXY")
 
+    # ==================== vLLM Config ====================
+    vllm_base_url: str = Field(
+        default="http://localhost:8000/v1",
+        validation_alias="VLLM_BASE_URL",
+    )
+    vllm_proxy: str = Field(default="", validation_alias="VLLM_PROXY")
+
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
     provider_rate_window: int = Field(

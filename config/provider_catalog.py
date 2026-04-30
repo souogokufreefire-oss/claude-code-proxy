@@ -23,6 +23,7 @@ LLAMACPP_DEFAULT_BASE = "http://localhost:8080/v1"
 OLLAMA_DEFAULT_BASE = "http://localhost:11434"
 FRIENDLIAI_DEFAULT_BASE = "https://api.friendli.ai/serverless/v1"
 FIREWORKS_DEFAULT_BASE = "https://api.fireworks.ai/inference/v1"
+VLLM_DEFAULT_BASE = "http://localhost:8000/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +136,15 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         default_base_url=FIREWORKS_DEFAULT_BASE,
         proxy_attr="fireworks_proxy",
         capabilities=("chat", "streaming", "tools", "thinking", "native_anthropic"),
+    ),
+    "vllm": ProviderDescriptor(
+        provider_id="vllm",
+        transport_type="anthropic_messages",
+        static_credential="vllm",
+        default_base_url=VLLM_DEFAULT_BASE,
+        base_url_attr="vllm_base_url",
+        proxy_attr="vllm_proxy",
+        capabilities=("chat", "streaming", "tools", "native_anthropic", "local"),
     ),
 }
 
