@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any
 
 import openai
-
 from loguru import logger
 
 from providers.base import ProviderConfig
