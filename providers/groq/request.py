@@ -30,10 +30,8 @@ def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
     except OpenAIConversionError as exc:
         raise InvalidRequestError(str(exc)) from exc
 
-    # Groq uses max_completion_tokens (OpenAI naming convention)
-    max_tokens = body.pop("max_tokens", None)
-    if max_tokens is not None:
-        body["max_completion_tokens"] = max_tokens
+    # Groq accepts both max_tokens and max_completion_tokens; keep max_tokens
+    # for compatibility with the OpenAI Python SDK.
 
     # Pass through optional parameters
     set_if_not_none(body, "temperature", getattr(request_data, "temperature", None))

@@ -30,10 +30,8 @@ def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
     except OpenAIConversionError as exc:
         raise InvalidRequestError(str(exc)) from exc
 
-    # Cerebras uses max_completion_tokens (OpenAI naming convention)
-    max_tokens = body.pop("max_tokens", None)
-    if max_tokens is not None:
-        body["max_completion_tokens"] = max_tokens
+    # Cerebras accepts both max_tokens and max_completion_tokens; keep max_tokens
+    # for compatibility with the OpenAI Python SDK.
 
     # reasoning_effort for thinking control
     if thinking_enabled and "reasoning_effort" not in body:
