@@ -21,6 +21,7 @@ OPENROUTER_DEFAULT_BASE = "https://openrouter.ai/api/v1"
 LMSTUDIO_DEFAULT_BASE = "http://localhost:1234/v1"
 LLAMACPP_DEFAULT_BASE = "http://localhost:8080/v1"
 OLLAMA_DEFAULT_BASE = "http://localhost:11434"
+FRIENDLIAI_DEFAULT_BASE = "https://api.friendli.ai/serverless/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +110,18 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
             "native_anthropic",
             "local",
         ),
+    ),
+    "friendliai": ProviderDescriptor(
+        provider_id="friendliai",
+        transport_type="anthropic_messages",
+        credential_env="FRIENDLIAI_API_KEY",
+        credential_url="https://friendli.ai",
+        credential_attr="friendliai_api_key",
+        credential_list_attr="friendliai_api_keys",
+        key_usage_limit_attr="friendliai_key_usage_limit",
+        default_base_url=FRIENDLIAI_DEFAULT_BASE,
+        proxy_attr="friendliai_proxy",
+        capabilities=("chat", "streaming", "tools", "thinking", "native_anthropic"),
     ),
 }
 

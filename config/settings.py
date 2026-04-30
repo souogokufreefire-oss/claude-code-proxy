@@ -143,6 +143,15 @@ class Settings(BaseSettings):
         validation_alias="OLLAMA_BASE_URL",
     )
 
+    # ==================== FriendliAI Config ====================
+    friendliai_api_key: str = Field(default="", validation_alias="FRIENDLIAI_API_KEY")
+    friendliai_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="FRIENDLIAI_API_KEYS"
+    )
+    friendliai_key_usage_limit: int = Field(
+        default=0, validation_alias="FRIENDLIAI_KEY_USAGE_LIMIT"
+    )
+
     # ==================== Model ====================
     # All Claude model requests are mapped to this single model (fallback)
     # Format: provider_type/model/name
@@ -159,6 +168,7 @@ class Settings(BaseSettings):
     open_router_proxy: str = Field(default="", validation_alias="OPENROUTER_PROXY")
     lmstudio_proxy: str = Field(default="", validation_alias="LMSTUDIO_PROXY")
     llamacpp_proxy: str = Field(default="", validation_alias="LLAMACPP_PROXY")
+    friendliai_proxy: str = Field(default="", validation_alias="FRIENDLIAI_PROXY")
 
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
@@ -289,6 +299,7 @@ class Settings(BaseSettings):
         "open_router_api_keys",
         "deepseek_api_keys",
         "nvidia_nim_api_keys",
+        "friendliai_api_keys",
         mode="before",
     )
     @classmethod
@@ -307,6 +318,7 @@ class Settings(BaseSettings):
         "open_router_key_usage_limit",
         "deepseek_key_usage_limit",
         "nvidia_nim_key_usage_limit",
+        "friendliai_key_usage_limit",
     )
     @classmethod
     def validate_key_usage_limit(cls, v: int) -> int:
