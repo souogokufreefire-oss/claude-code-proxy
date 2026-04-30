@@ -60,7 +60,7 @@ def test_provider_tool_use_then_text_history_e2e(smoke_config: SmokeConfig) -> N
 
 @pytest.mark.smoke_target("tools")
 def test_provider_tool_result_continuation_e2e(smoke_config: SmokeConfig) -> None:
-    _run_for_each_provider(smoke_config, _scenario_tool_result_continuation)
+    _run_for_each_tool_provider(smoke_config, _scenario_tool_result_continuation)
 
 
 @pytest.mark.smoke_target("tools")
@@ -166,6 +166,43 @@ def _run_for_each_thinking_provider(smoke_config: SmokeConfig, scenario) -> None
                 f"{type(exc).__name__}: {exc}"
             )
     assert not failures, "\n".join(failures)
+
+
+def _run_for_each_tool_provider(smoke_config: SmokeConfig, scenario) -> None:
+    """Run model-emitted tool smoke only for configured or explicit smoke models."""
+    failures: list[str] = []
+    models = _tool_smoke_models(smoke_config)
+    if not models:
+        pytest.skip(
+            "missing_env: no configured tool-capable provider model. "
+            "Set MODEL or FCC_SMOKE_MODEL_<PROVIDER> to run live tool emission smoke."
+        )
+    for provider_model in models:
+        try:
+            scenario(smoke_config, provider_model)
+        except Exception as exc:
+            skip_if_upstream_unavailable_exception(exc)
+            failures.append(
+                f"{provider_model.source}={provider_model.full_model}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    assert not failures, "\n".join(failures)
+
+
+def _tool_smoke_models(smoke_config: SmokeConfig) -> list[ProviderModel]:
+    models: list[ProviderModel] = []
+    seen: set[str] = set()
+    for provider_model in (
+        *smoke_config.provider_models(),
+        *ProviderMatrixDriver(smoke_config).provider_smoke_models(),
+    ):
+        if provider_model.source == "provider_default":
+            continue
+        if provider_model.full_model in seen:
+            continue
+        seen.add(provider_model.full_model)
+        models.append(provider_model)
+    return models
 
 
 def _provider_smoke_thinking_enabled(

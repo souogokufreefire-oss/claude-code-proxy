@@ -21,6 +21,13 @@ dependencies = [
     "aiohttp>=3.13.4",
 ]
 
+[project.urls]
+Homepage = "https://github.com/suparious/claude-code-proxy"
+Repository = "https://github.com/suparious/claude-code-proxy"
+Issues = "https://github.com/suparious/claude-code-proxy/issues"
+Changelog = "https://github.com/suparious/claude-code-proxy/blob/main/CHANGELOG.md"
+CI = "https://github.com/suparious/claude-code-proxy/actions/workflows/tests.yml"
+
 [project.scripts]
 claude-code-proxy = "cli.entrypoints:serve"
 ccp-init = "cli.entrypoints:init"

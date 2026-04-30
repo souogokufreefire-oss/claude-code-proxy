@@ -202,3 +202,13 @@ def test_provider_smoke_does_not_include_default_local_urls_when_unmapped(
     config = _smoke_config(settings=_settings(model="nvidia_nim/test"))
 
     assert config.provider_smoke_models() == []
+
+
+def test_tool_emission_smoke_skips_provider_defaults() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    source = (
+        repo_root / "smoke" / "product" / "test_provider_product_live.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'provider_model.source == "provider_default"' in source
+    assert "_run_for_each_tool_provider(smoke_config" in source

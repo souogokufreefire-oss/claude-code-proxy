@@ -76,6 +76,27 @@ together.
 
 ## Current Candidates
 
+### Pre-Release Audit - 2026-04-29
+
+- [x] Refreshed upstream PRs and issues before the `2.0.0` release.
+- [x] No remaining upstream item is a release blocker after applying/adapting
+  PRs #259, #262, #264, #271 and the issue #265 class of tool-message repair.
+- [x] PR #270: backlog/adapt. The health endpoint idea is useful, but the patch
+  is broad and includes AgentRouter docs outside this fork's local proxy scope.
+- [x] PR #202: adapt only after release. It mixes reliability fixes, behavior
+  changes, logging changes, request IDs, and health metadata; any useful pieces
+  need separate local review and tests.
+- [x] Issue #223: no pre-release action. It describes DeepSeek reasoning replay
+  through the upstream OpenAI-style converter; this fork's DeepSeek provider
+  uses the native Anthropic-compatible endpoint and strips OpenAI-helper
+  `reasoning_content`.
+- [x] Issue #248: documentation/support class. The report was caused by setting
+  `NVIDIA_NIM_API_KEY` in `~/.env`; this fork documents `.env` setup and
+  packaged `ccp-init`.
+- [x] Current timeout/provider-failure issues (#272, #258, #254, #244, #232,
+  #231) do not include enough proxy-specific reproduction detail to block the
+  release. Keep monitoring them after release.
+
 ### Apply
 
 - [x] PR #262: `fix(security): constant-time comparison for ANTHROPIC_AUTH_TOKEN`

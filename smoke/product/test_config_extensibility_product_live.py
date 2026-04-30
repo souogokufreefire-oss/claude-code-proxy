@@ -13,6 +13,24 @@ from smoke.lib.e2e import SmokeServerDriver
 
 pytestmark = [pytest.mark.live]
 
+_CONFIG_ENV_KEYS = (
+    "ENABLE_MODEL_THINKING",
+    "ENABLE_OPUS_THINKING",
+    "ENABLE_SONNET_THINKING",
+    "ENABLE_HAIKU_THINKING",
+    "HTTP_READ_TIMEOUT",
+    "HTTP_CONNECT_TIMEOUT",
+    "HTTP_WRITE_TIMEOUT",
+    "OPENROUTER_PROXY",
+)
+
+
+def _isolated_config_env() -> dict[str, str]:
+    env = os.environ.copy()
+    for key in _CONFIG_ENV_KEYS:
+        env.pop(key, None)
+    return env
+
 
 @pytest.mark.smoke_target("config")
 def test_env_precedence_e2e(smoke_config: SmokeConfig, tmp_path) -> None:
@@ -73,7 +91,7 @@ def test_per_model_thinking_config_e2e(smoke_config: SmokeConfig, tmp_path) -> N
         'ENABLE_HAIKU_THINKING="false"\n',
         encoding="utf-8",
     )
-    env = os.environ.copy()
+    env = _isolated_config_env()
     env["FCC_ENV_FILE"] = str(env_file)
     script = (
         "from config.settings import Settings; "
@@ -108,7 +126,7 @@ def test_proxy_timeout_config_e2e(smoke_config: SmokeConfig, tmp_path) -> None:
         'HTTP_WRITE_TIMEOUT="8"\n',
         encoding="utf-8",
     )
-    env = os.environ.copy()
+    env = _isolated_config_env()
     env["FCC_ENV_FILE"] = str(env_file)
     script = (
         "from config.settings import Settings; "
