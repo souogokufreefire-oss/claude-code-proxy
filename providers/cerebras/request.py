@@ -33,6 +33,10 @@ def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
     # Cerebras accepts both max_tokens and max_completion_tokens; keep max_tokens
     # for compatibility with the OpenAI Python SDK.
 
+    # reasoning_effort for thinking control (retried without on unsupported models)
+    if thinking_enabled and "reasoning_effort" not in body:
+        body["reasoning_effort"] = "medium"
+
     set_if_not_none(body, "temperature", getattr(request_data, "temperature", None))
     set_if_not_none(body, "top_p", getattr(request_data, "top_p", None))
 
