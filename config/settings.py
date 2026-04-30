@@ -204,6 +204,26 @@ class Settings(BaseSettings):
     )
     groq_proxy: str = Field(default="", validation_alias="GROQ_PROXY")
 
+    # ==================== Cerebras Config ====================
+    cerebras_api_key: str = Field(default="", validation_alias="CEREBRAS_API_KEY")
+    cerebras_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="CEREBRAS_API_KEYS"
+    )
+    cerebras_key_usage_limit: int = Field(
+        default=0, validation_alias="CEREBRAS_KEY_USAGE_LIMIT"
+    )
+    cerebras_proxy: str = Field(default="", validation_alias="CEREBRAS_PROXY")
+
+    # ==================== Together AI Config ====================
+    together_api_key: str = Field(default="", validation_alias="TOGETHER_API_KEY")
+    together_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="TOGETHER_API_KEYS"
+    )
+    together_key_usage_limit: int = Field(
+        default=0, validation_alias="TOGETHER_KEY_USAGE_LIMIT"
+    )
+    together_proxy: str = Field(default="", validation_alias="TOGETHER_PROXY")
+
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
     provider_rate_window: int = Field(
@@ -336,6 +356,8 @@ class Settings(BaseSettings):
         "friendliai_api_keys",
         "fireworks_api_keys",
         "groq_api_keys",
+        "cerebras_api_keys",
+        "together_api_keys",
         mode="before",
     )
     @classmethod
@@ -357,6 +379,8 @@ class Settings(BaseSettings):
         "friendliai_key_usage_limit",
         "fireworks_key_usage_limit",
         "groq_key_usage_limit",
+        "cerebras_key_usage_limit",
+        "together_key_usage_limit",
     )
     @classmethod
     def validate_key_usage_limit(cls, v: int) -> int:

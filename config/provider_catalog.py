@@ -26,6 +26,8 @@ FIREWORKS_DEFAULT_BASE = "https://api.fireworks.ai/inference/v1"
 VLLM_DEFAULT_BASE = "http://localhost:8000/v1"
 CLIPROXYAPI_DEFAULT_BASE = "http://localhost:8317/v1"
 GROQ_DEFAULT_BASE = "https://api.groq.com/openai/v1"
+CEREBRAS_DEFAULT_BASE = "https://api.cerebras.ai/v1"
+TOGETHER_DEFAULT_BASE = "https://api.together.xyz/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,6 +176,30 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         key_usage_limit_attr="groq_key_usage_limit",
         default_base_url=GROQ_DEFAULT_BASE,
         proxy_attr="groq_proxy",
+        capabilities=("chat", "streaming", "tools", "rate_limit"),
+    ),
+    "cerebras": ProviderDescriptor(
+        provider_id="cerebras",
+        transport_type="openai_chat",
+        credential_env="CEREBRAS_API_KEY",
+        credential_url="https://cloud.cerebras.ai",
+        credential_attr="cerebras_api_key",
+        credential_list_attr="cerebras_api_keys",
+        key_usage_limit_attr="cerebras_key_usage_limit",
+        default_base_url=CEREBRAS_DEFAULT_BASE,
+        proxy_attr="cerebras_proxy",
+        capabilities=("chat", "streaming", "tools", "thinking", "rate_limit"),
+    ),
+    "together": ProviderDescriptor(
+        provider_id="together",
+        transport_type="openai_chat",
+        credential_env="TOGETHER_API_KEY",
+        credential_url="https://api.together.xyz",
+        credential_attr="together_api_key",
+        credential_list_attr="together_api_keys",
+        key_usage_limit_attr="together_key_usage_limit",
+        default_base_url=TOGETHER_DEFAULT_BASE,
+        proxy_attr="together_proxy",
         capabilities=("chat", "streaming", "tools", "rate_limit"),
     ),
 }

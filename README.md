@@ -138,6 +138,8 @@ provider_id/model/name
 | vLLM | `vllm/...` | Anthropic Messages | none (local) | `http://localhost:8000/v1` |
 | CLIProxyAPI | `cliproxyapi/...` | Anthropic Messages | none (local, OAuth) | `http://localhost:8317/v1` |
 | Groq | `groq/...` | OpenAI chat translation | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
+| Cerebras | `cerebras/...` | OpenAI chat translation | `CEREBRAS_API_KEY` | `https://api.cerebras.ai/v1` |
+| Together AI | `together/...` | OpenAI chat translation | `TOGETHER_API_KEY` | `https://api.together.xyz/v1` |
 
 <details>
 <summary><b>NVIDIA NIM</b></summary>
@@ -425,6 +427,12 @@ CLIPROXYAPI_BASE_URL="http://localhost:8317/v1"
 GROQ_API_KEY=***
 GROQ_API_KEYS=***
 GROQ_KEY_USAGE_LIMIT=0
+CEREBRAS_API_KEY=***
+CEREBRAS_API_KEYS=***
+CEREBRAS_KEY_USAGE_LIMIT=0
+TOGETHER_API_KEY=***
+TOGETHER_API_KEYS=***
+TOGETHER_KEY_USAGE_LIMIT=0
 ```
 
 Hosted providers can use fallback keys with comma or whitespace separated
@@ -445,6 +453,8 @@ FIREWORKS_PROXY=""
 VLLM_PROXY=""
 CLIPROXYAPI_PROXY=""
 GROQ_PROXY=""
+CEREBRAS_PROXY=""
+TOGETHER_PROXY=""
 ```
 
 ### Rate Limits And Timeouts
@@ -538,7 +548,7 @@ Claude Code Proxy (:8082)
         |
         | provider-specific request/stream adapter
         v
-NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI / Groq
+NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI / Groq / Cerebras / Together
 ```
 
 Important pieces:
@@ -547,7 +557,7 @@ Important pieces:
 - Model routing resolves the Claude model name to `MODEL_OPUS`, `MODEL_SONNET`, `MODEL_HAIKU`, or `MODEL`.
 - NIM uses OpenAI chat streaming translated into Anthropic SSE.
 - OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, and CLIProxyAPI use Anthropic Messages style transports.
-- Groq uses OpenAI chat streaming translated into Anthropic SSE.
+- Groq, Cerebras, and Together AI use OpenAI chat streaming translated into Anthropic SSE.
 - The proxy normalizes thinking blocks, tool calls, token usage metadata, and provider errors into the shape Claude Code expects.
 - Request optimizations answer trivial Claude Code probes locally to save latency and quota.
 

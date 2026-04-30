@@ -85,6 +85,18 @@ def _create_groq(config: ProviderConfig, _settings: Settings) -> BaseProvider:
     return GroqProvider(config)
 
 
+def _create_cerebras(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.cerebras import CerebrasProvider
+
+    return CerebrasProvider(config)
+
+
+def _create_together(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.together import TogetherProvider
+
+    return TogetherProvider(config)
+
+
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "nvidia_nim": _create_nvidia_nim,
     "open_router": _create_open_router,
@@ -97,6 +109,8 @@ PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "vllm": _create_vllm,
     "cliproxyapi": _create_cliproxyapi,
     "groq": _create_groq,
+    "cerebras": _create_cerebras,
+    "together": _create_together,
 }
 
 if set(PROVIDER_DESCRIPTORS) != set(SUPPORTED_PROVIDER_IDS) or set(

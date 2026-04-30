@@ -1,6 +1,7 @@
 """Re-exports default upstream base URLs from the config provider catalog."""
 
 from config.provider_catalog import (
+    CEREBRAS_DEFAULT_BASE,
     CLIPROXYAPI_DEFAULT_BASE,
     DEEPSEEK_ANTHROPIC_DEFAULT_BASE,
     DEEPSEEK_DEFAULT_BASE,
@@ -12,10 +13,12 @@ from config.provider_catalog import (
     NVIDIA_NIM_DEFAULT_BASE,
     OLLAMA_DEFAULT_BASE,
     OPENROUTER_DEFAULT_BASE,
+    TOGETHER_DEFAULT_BASE,
     VLLM_DEFAULT_BASE,
 )
 
 __all__ = (
+    "CEREBRAS_DEFAULT_BASE",
     "CLIPROXYAPI_DEFAULT_BASE",
     "DEEPSEEK_ANTHROPIC_DEFAULT_BASE",
     "DEEPSEEK_DEFAULT_BASE",
@@ -27,5 +30,6 @@ __all__ = (
     "NVIDIA_NIM_DEFAULT_BASE",
     "OLLAMA_DEFAULT_BASE",
     "OPENROUTER_DEFAULT_BASE",
+    "TOGETHER_DEFAULT_BASE",
     "VLLM_DEFAULT_BASE",
 )
