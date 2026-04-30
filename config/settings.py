@@ -194,6 +194,16 @@ class Settings(BaseSettings):
     )
     cliproxyapi_proxy: str = Field(default="", validation_alias="CLIPROXYAPI_PROXY")
 
+    # ==================== Groq Config ====================
+    groq_api_key: str = Field(default="", validation_alias="GROQ_API_KEY")
+    groq_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="GROQ_API_KEYS"
+    )
+    groq_key_usage_limit: int = Field(
+        default=0, validation_alias="GROQ_KEY_USAGE_LIMIT"
+    )
+    groq_proxy: str = Field(default="", validation_alias="GROQ_PROXY")
+
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
     provider_rate_window: int = Field(
@@ -325,6 +335,7 @@ class Settings(BaseSettings):
         "nvidia_nim_api_keys",
         "friendliai_api_keys",
         "fireworks_api_keys",
+        "groq_api_keys",
         mode="before",
     )
     @classmethod
@@ -345,6 +356,7 @@ class Settings(BaseSettings):
         "nvidia_nim_key_usage_limit",
         "friendliai_key_usage_limit",
         "fireworks_key_usage_limit",
+        "groq_key_usage_limit",
     )
     @classmethod
     def validate_key_usage_limit(cls, v: int) -> int:

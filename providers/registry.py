@@ -79,6 +79,12 @@ def _create_cliproxyapi(config: ProviderConfig, _settings: Settings) -> BaseProv
     return CLIProxyAPIProvider(config)
 
 
+def _create_groq(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.groq import GroqProvider
+
+    return GroqProvider(config)
+
+
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "nvidia_nim": _create_nvidia_nim,
     "open_router": _create_open_router,
@@ -90,6 +96,7 @@ PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "fireworks": _create_fireworks,
     "vllm": _create_vllm,
     "cliproxyapi": _create_cliproxyapi,
+    "groq": _create_groq,
 }
 
 if set(PROVIDER_DESCRIPTORS) != set(SUPPORTED_PROVIDER_IDS) or set(

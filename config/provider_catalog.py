@@ -25,6 +25,7 @@ FRIENDLIAI_DEFAULT_BASE = "https://api.friendli.ai/serverless/v1"
 FIREWORKS_DEFAULT_BASE = "https://api.fireworks.ai/inference/v1"
 VLLM_DEFAULT_BASE = "http://localhost:8000/v1"
 CLIPROXYAPI_DEFAULT_BASE = "http://localhost:8317/v1"
+GROQ_DEFAULT_BASE = "https://api.groq.com/openai/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +163,18 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
             "native_anthropic",
             "local",
         ),
+    ),
+    "groq": ProviderDescriptor(
+        provider_id="groq",
+        transport_type="openai_chat",
+        credential_env="GROQ_API_KEY",
+        credential_url="https://console.groq.com/keys",
+        credential_attr="groq_api_key",
+        credential_list_attr="groq_api_keys",
+        key_usage_limit_attr="groq_key_usage_limit",
+        default_base_url=GROQ_DEFAULT_BASE,
+        proxy_attr="groq_proxy",
+        capabilities=("chat", "streaming", "tools", "rate_limit"),
     ),
 }
 

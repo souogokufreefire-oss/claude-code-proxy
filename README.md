@@ -137,6 +137,7 @@ provider_id/model/name
 | Fireworks AI | `fireworks/...` | Anthropic Messages | `FIREWORKS_API_KEY` | `https://api.fireworks.ai/inference/v1` |
 | vLLM | `vllm/...` | Anthropic Messages | none (local) | `http://localhost:8000/v1` |
 | CLIProxyAPI | `cliproxyapi/...` | Anthropic Messages | none (local, OAuth) | `http://localhost:8317/v1` |
+| Groq | `groq/...` | OpenAI chat translation | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
 
 <details>
 <summary><b>NVIDIA NIM</b></summary>
@@ -421,6 +422,9 @@ FIREWORKS_API_KEYS=***
 FIREWORKS_KEY_USAGE_LIMIT=0
 VLLM_BASE_URL="http://localhost:8000/v1"
 CLIPROXYAPI_BASE_URL="http://localhost:8317/v1"
+GROQ_API_KEY=***
+GROQ_API_KEYS=***
+GROQ_KEY_USAGE_LIMIT=0
 ```
 
 Hosted providers can use fallback keys with comma or whitespace separated
@@ -440,6 +444,7 @@ FRIENDLIAI_PROXY=""
 FIREWORKS_PROXY=""
 VLLM_PROXY=""
 CLIPROXYAPI_PROXY=""
+GROQ_PROXY=""
 ```
 
 ### Rate Limits And Timeouts
@@ -533,7 +538,7 @@ Claude Code Proxy (:8082)
         |
         | provider-specific request/stream adapter
         v
-NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI
+NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI / Groq
 ```
 
 Important pieces:
@@ -542,6 +547,7 @@ Important pieces:
 - Model routing resolves the Claude model name to `MODEL_OPUS`, `MODEL_SONNET`, `MODEL_HAIKU`, or `MODEL`.
 - NIM uses OpenAI chat streaming translated into Anthropic SSE.
 - OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, and CLIProxyAPI use Anthropic Messages style transports.
+- Groq uses OpenAI chat streaming translated into Anthropic SSE.
 - The proxy normalizes thinking blocks, tool calls, token usage metadata, and provider errors into the shape Claude Code expects.
 - Request optimizations answer trivial Claude Code probes locally to save latency and quota.
 
