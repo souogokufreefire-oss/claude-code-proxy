@@ -39,16 +39,17 @@ def test_provider_construction(fireworks_config):
     assert provider._base_url == "https://api.fireworks.ai/inference/v1"
 
 
-def test_request_headers_uses_bearer_auth(fireworks_config):
-    """Fireworks AI uses Authorization: Bearer."""
+def test_request_headers_uses_x_api_key(fireworks_config):
+    """Fireworks AI uses x-api-key header (not Authorization: Bearer)."""
     from providers.fireworks import FireworksProvider
 
     with patch("httpx.AsyncClient"):
         provider = FireworksProvider(fireworks_config)
     headers = provider._request_headers()
-    assert headers["Authorization"] == "Bearer test_fireworks_key"
+    assert headers["x-api-key"] == "test_fireworks_key"
     assert headers["Content-Type"] == "application/json"
     assert headers["Accept"] == "text/event-stream"
+    assert "Authorization" not in headers
 
 
 def test_build_request_body_passthrough(fireworks_config):

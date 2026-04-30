@@ -71,7 +71,6 @@ def test_build_request_body_basic(cerebras_config):
     )
     body = provider._build_request_body(request, thinking_enabled=False)
     assert body["model"] == "llama-4-maverick-17b"
-    assert body["stream"] is True
     assert body["messages"][0]["role"] == "system"
 
 

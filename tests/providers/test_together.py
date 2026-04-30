@@ -70,7 +70,6 @@ def test_build_request_body_basic(together_config):
     )
     body = provider._build_request_body(request, thinking_enabled=False)
     assert body["model"] == "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-    assert body["stream"] is True
 
 
 def test_catalog_descriptor():

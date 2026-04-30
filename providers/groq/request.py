@@ -39,8 +39,6 @@ def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
     set_if_not_none(body, "temperature", getattr(request_data, "temperature", None))
     set_if_not_none(body, "top_p", getattr(request_data, "top_p", None))
 
-    body["stream"] = True
-
     logger.debug(
         "GROQ_REQUEST: conversion done model={} msgs={} tools={}",
         body.get("model"),

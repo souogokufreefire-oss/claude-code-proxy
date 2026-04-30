@@ -18,6 +18,6 @@ class FireworksProvider(AnthropicMessagesTransport):
     def _request_headers(self) -> dict[str, str]:
         return {
             "Accept": "text/event-stream",
-            "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
+            "x-api-key": self._api_key,
         }

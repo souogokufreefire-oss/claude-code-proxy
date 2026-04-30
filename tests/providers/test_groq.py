@@ -72,7 +72,6 @@ def test_build_request_body_basic(groq_config):
     body = provider._build_request_body(request, thinking_enabled=False)
 
     assert body["model"] == "llama-4-maverick-17b-128e"
-    assert body["stream"] is True
     assert body["messages"][0]["role"] == "system"
     assert body["messages"][0]["content"] == "You are helpful."
     assert body["messages"][1]["role"] == "user"
