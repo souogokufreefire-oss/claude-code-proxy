@@ -125,6 +125,9 @@ provider_id/model/name
 | LM Studio | `lmstudio/...` | Anthropic Messages | none | `http://localhost:1234/v1` |
 | llama.cpp | `llamacpp/...` | Anthropic Messages | none | `http://localhost:8080/v1` |
 | Ollama | `ollama/...` | Anthropic Messages | none | `http://localhost:11434` |
+| FriendliAI | `friendliai/...` | Anthropic Messages | `FRIENDLIAI_API_KEY` | `https://api.friendli.ai/serverless/v1` |
+| Fireworks AI | `fireworks/...` | Anthropic Messages | `FIREWORKS_API_KEY` | `https://api.fireworks.ai/inference/v1` |
+| vLLM | `vllm/...` | Anthropic Messages | none (local) | `http://localhost:8000/v1` |
 
 <details>
 <summary><b>NVIDIA NIM</b></summary>
@@ -221,6 +224,59 @@ MODEL="ollama/llama3.1"
 ```
 
 Use the same tag shown by `ollama list`, for example `ollama/llama3.1:8b`.
+
+</details>
+
+<details>
+<summary><b>FriendliAI</b></summary>
+
+Get a key at [friendli.ai](https://friendli.ai).
+
+```dotenv
+FRIENDLIAI_API_KEY="***"
+MODEL="friendliai/meta-llama/Llama-4-Maverick-17B-128E-Instruct"
+```
+
+Popular models:
+
+- `friendliai/meta-llama/Llama-4-Maverick-17B-128E-Instruct`
+- `friendliai/z-ai/glm-4.7`
+- `friendliai/deepseek-ai/DeepSeek-V3`
+
+</details>
+
+<details>
+<summary><b>Fireworks AI</b></summary>
+
+Get a key at [fireworks.ai/account/api-keys](https://fireworks.ai/account/api-keys).
+
+```dotenv
+FIREWORKS_API_KEY="***"
+MODEL="fireworks/accounts/fireworks/models/llama-v4-maverick-17b"
+```
+
+Popular models:
+
+- `fireworks/accounts/fireworks/models/llama-v4-maverick-17b`
+- `fireworks/accounts/fireworks/models/deepseek-v3`
+
+Fireworks exposes an Anthropic Messages endpoint at `/inference/v1` (separate from their OpenAI-compatible endpoint). Function calling and reasoning are supported on compatible models.
+
+</details>
+
+<details>
+<summary><b>vLLM</b></summary>
+
+Start a vLLM server with a model, then configure:
+
+```dotenv
+VLLM_BASE_URL="http://localhost:8000/v1"
+MODEL="vllm/meta-llama/Llama-4-Maverick-17B-128E-Instruct"
+```
+
+vLLM exposes a native Anthropic Messages endpoint at `/v1/messages` (since v0.8+). No API key is required by default. If you set `VLLM_API_KEY` on the server, use `VLLM_API_KEY` in the proxy's `.env`.
+
+Prefer models with tool-use support for Claude Code workflows.
 
 </details>
 
@@ -332,6 +388,13 @@ DEEPSEEK_KEY_USAGE_LIMIT=0
 LM_STUDIO_BASE_URL="http://localhost:1234/v1"
 LLAMACPP_BASE_URL="http://localhost:8080/v1"
 OLLAMA_BASE_URL="http://localhost:11434"
+FRIENDLIAI_API_KEY=***
+FRIENDLIAI_API_KEYS=***
+FRIENDLIAI_KEY_USAGE_LIMIT=0
+FIREWORKS_API_KEY=***
+FIREWORKS_API_KEYS=***
+FIREWORKS_KEY_USAGE_LIMIT=0
+VLLM_BASE_URL="http://localhost:8000/v1"
 ```
 
 Hosted providers can use fallback keys with comma or whitespace separated
@@ -347,6 +410,9 @@ NVIDIA_NIM_PROXY=""
 OPENROUTER_PROXY=""
 LMSTUDIO_PROXY=""
 LLAMACPP_PROXY=""
+FRIENDLIAI_PROXY=""
+FIREWORKS_PROXY=""
+VLLM_PROXY=""
 ```
 
 ### Rate Limits And Timeouts
@@ -440,7 +506,7 @@ Claude Code Proxy (:8082)
         |
         | provider-specific request/stream adapter
         v
-NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama
+NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM
 ```
 
 Important pieces:
@@ -448,7 +514,7 @@ Important pieces:
 - FastAPI exposes Anthropic-compatible routes such as `/v1/messages`, `/v1/messages/count_tokens`, and `/v1/models`.
 - Model routing resolves the Claude model name to `MODEL_OPUS`, `MODEL_SONNET`, `MODEL_HAIKU`, or `MODEL`.
 - NIM uses OpenAI chat streaming translated into Anthropic SSE.
-- OpenRouter, DeepSeek, LM Studio, llama.cpp, and Ollama use Anthropic Messages style transports.
+- OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, and vLLM use Anthropic Messages style transports.
 - The proxy normalizes thinking blocks, tool calls, token usage metadata, and provider errors into the shape Claude Code expects.
 - Request optimizations answer trivial Claude Code probes locally to save latency and quota.
 
