@@ -77,8 +77,16 @@ Use any local secret for `ANTHROPIC_AUTH_TOKEN`; Claude Code will send the same 
 
 ### 3. Start The Proxy
 
+From source (reads `.env` for `HOST` and `PORT`):
+
 ```bash
-uv run uvicorn server:app --host 0.0.0.0 --port 8082
+uv run python server.py
+```
+
+If you need to override host/port on the command line:
+
+```bash
+uv run uvicorn server:app --host 127.0.0.1 --port 8082
 ```
 
 Package install alternative:
