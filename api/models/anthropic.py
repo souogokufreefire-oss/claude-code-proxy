@@ -31,6 +31,13 @@ class ContentBlockImage(_AnthropicBlockBase):
     source: dict[str, Any]
 
 
+class ContentBlockDocument(_AnthropicBlockBase):
+    """Anthropic document block, e.g. PDFs/files sent by Claude Code."""
+
+    type: Literal["document"]
+    source: dict[str, Any]
+
+
 class ContentBlockToolUse(_AnthropicBlockBase):
     type: Literal["tool_use"]
     id: str
@@ -91,6 +98,7 @@ class Message(BaseModel):
         | list[
             ContentBlockText
             | ContentBlockImage
+            | ContentBlockDocument
             | ContentBlockToolUse
             | ContentBlockToolResult
             | ContentBlockThinking
@@ -145,6 +153,8 @@ class MessagesRequest(BaseModel):
     output_config: dict[str, Any] | None = None
     mcp_servers: list[dict[str, Any]] | None = None
     extra_body: dict[str, Any] | None = None
+    # Beta feature flags sent by Claude Code as a body field; accept but never forward.
+    betas: list[str] | None = Field(default=None, exclude=True)
 
 
 class TokenCountRequest(BaseModel):
@@ -161,3 +171,4 @@ class TokenCountRequest(BaseModel):
     context_management: dict[str, Any] | None = None
     output_config: dict[str, Any] | None = None
     mcp_servers: list[dict[str, Any]] | None = None
+    betas: list[str] | None = Field(default=None, exclude=True)

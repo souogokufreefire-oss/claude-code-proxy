@@ -28,6 +28,7 @@ CLIPROXYAPI_DEFAULT_BASE = "http://localhost:8317/v1"
 GROQ_DEFAULT_BASE = "https://api.groq.com/openai/v1"
 CEREBRAS_DEFAULT_BASE = "https://api.cerebras.ai/v1"
 TOGETHER_DEFAULT_BASE = "https://api.together.xyz/v1"
+KIMI_DEFAULT_BASE = "https://api.moonshot.ai/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,6 +202,18 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         default_base_url=TOGETHER_DEFAULT_BASE,
         proxy_attr="together_proxy",
         capabilities=("chat", "streaming", "tools", "rate_limit"),
+    ),
+    "kimi": ProviderDescriptor(
+        provider_id="kimi",
+        transport_type="openai_chat",
+        credential_env="KIMI_API_KEY",
+        credential_url="https://platform.moonshot.ai/console/api-keys",
+        credential_attr="kimi_api_key",
+        credential_list_attr="kimi_api_keys",
+        key_usage_limit_attr="kimi_key_usage_limit",
+        default_base_url=KIMI_DEFAULT_BASE,
+        proxy_attr="kimi_proxy",
+        capabilities=("chat", "streaming", "tools", "thinking", "rate_limit"),
     ),
 }
 

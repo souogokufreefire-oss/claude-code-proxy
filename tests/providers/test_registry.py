@@ -34,20 +34,30 @@ def _make_settings(**overrides):
     mock.deepseek_api_key = "test_deepseek_key"
     mock.deepseek_api_keys = ()
     mock.deepseek_key_usage_limit = 0
+    mock.kimi_api_key = "test_kimi_key"
+    mock.kimi_api_keys = ()
+    mock.kimi_key_usage_limit = 0
     mock.lm_studio_base_url = "http://localhost:1234/v1"
     mock.llamacpp_base_url = "http://localhost:8080/v1"
     mock.ollama_base_url = "http://localhost:11434"
     mock.nvidia_nim_proxy = ""
     mock.open_router_proxy = ""
+    mock.deepseek_proxy = ""
+    mock.kimi_proxy = ""
     mock.lmstudio_proxy = ""
     mock.llamacpp_proxy = ""
     mock.provider_rate_limit = 40
     mock.provider_rate_window = 60
     mock.provider_max_concurrency = 5
+    mock.provider_max_retries = 8
+    mock.provider_retry_base_delay = 2.0
+    mock.provider_retry_max_delay = 120.0
     mock.http_read_timeout = 300.0
     mock.http_write_timeout = 10.0
     mock.http_connect_timeout = 10.0
     mock.enable_model_thinking = True
+    mock.log_raw_sse_events = False
+    mock.log_api_error_tracebacks = False
     mock.nim = NimSettings()
     for key, value in overrides.items():
         setattr(mock, key, value)
@@ -120,6 +130,8 @@ def test_create_provider_uses_native_openrouter_by_default():
 
 
 def test_create_provider_instantiates_each_builtin():
+    from providers.kimi import KimiProvider
+
     settings = _make_settings()
     cases = {
         "nvidia_nim": NvidiaNimProvider,
@@ -127,6 +139,7 @@ def test_create_provider_instantiates_each_builtin():
         "lmstudio": LMStudioProvider,
         "llamacpp": LlamaCppProvider,
         "ollama": OllamaProvider,
+        "kimi": KimiProvider,
     }
 
     with (

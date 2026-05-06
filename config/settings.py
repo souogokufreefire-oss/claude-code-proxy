@@ -224,6 +224,16 @@ class Settings(BaseSettings):
     )
     together_proxy: str = Field(default="", validation_alias="TOGETHER_PROXY")
 
+    # ==================== Kimi / Moonshot Config ====================
+    kimi_api_key: str = Field(default="", validation_alias="KIMI_API_KEY")
+    kimi_api_keys: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), validation_alias="KIMI_API_KEYS"
+    )
+    kimi_key_usage_limit: int = Field(
+        default=0, validation_alias="KIMI_KEY_USAGE_LIMIT"
+    )
+    kimi_proxy: str = Field(default="", validation_alias="KIMI_PROXY")
+
     # ==================== Provider Rate Limiting ====================
     provider_rate_limit: int = Field(default=40, validation_alias="PROVIDER_RATE_LIMIT")
     provider_rate_window: int = Field(
@@ -358,6 +368,7 @@ class Settings(BaseSettings):
         "groq_api_keys",
         "cerebras_api_keys",
         "together_api_keys",
+        "kimi_api_keys",
         mode="before",
     )
     @classmethod
@@ -381,6 +392,7 @@ class Settings(BaseSettings):
         "groq_key_usage_limit",
         "cerebras_key_usage_limit",
         "together_key_usage_limit",
+        "kimi_key_usage_limit",
     )
     @classmethod
     def validate_key_usage_limit(cls, v: int) -> int:

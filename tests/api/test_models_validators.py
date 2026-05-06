@@ -1,4 +1,9 @@
-from api.models.anthropic import Message, MessagesRequest, TokenCountRequest
+from api.models.anthropic import (
+    ContentBlockDocument,
+    Message,
+    MessagesRequest,
+    TokenCountRequest,
+)
 
 
 def test_messages_request_parses_without_model_mapping_side_effects():
@@ -27,12 +32,64 @@ def test_messages_request_ignores_internal_routing_fields_when_supplied():
     assert "resolved_provider_model" not in request.model_dump()
 
 
+def test_messages_request_accepts_body_betas_without_forwarding():
+    request = MessagesRequest.model_validate(
+        {
+            "model": "target-model",
+            "max_tokens": 100,
+            "messages": [{"role": "user", "content": "hello"}],
+            "betas": ["interleaved-thinking-2025-05-14"],
+        }
+    )
+
+    assert request.betas == ["interleaved-thinking-2025-05-14"]
+    assert "betas" not in request.model_dump()
+
+
 def test_token_count_request_parses_without_model_mapping_side_effects():
     request = TokenCountRequest(
         model="claude-3-sonnet", messages=[Message(role="user", content="hello")]
     )
 
     assert request.model == "claude-3-sonnet"
+
+
+def test_token_count_request_accepts_body_betas_without_forwarding():
+    request = TokenCountRequest.model_validate(
+        {
+            "model": "claude-3-sonnet",
+            "messages": [{"role": "user", "content": "hello"}],
+            "betas": ["token-efficient-tools-2025-02-19"],
+        }
+    )
+
+    assert request.betas == ["token-efficient-tools-2025-02-19"]
+    assert "betas" not in request.model_dump()
+
+
+def test_messages_request_accepts_document_blocks():
+    request = MessagesRequest.model_validate(
+        {
+            "model": "claude-3-sonnet",
+            "max_tokens": 100,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "document",
+                            "source": {"type": "file", "file_id": "file_pdf"},
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    block = request.messages[0].content[0]
+    assert isinstance(block, ContentBlockDocument)
+    assert block.model_dump()["cache_control"] == {"type": "ephemeral"}
 
 
 def test_messages_request_preserves_thinking_signature():

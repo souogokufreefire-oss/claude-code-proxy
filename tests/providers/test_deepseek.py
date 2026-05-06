@@ -247,7 +247,7 @@ def test_passthrough_tool_use_and_result(deepseek_provider):
     assert body["messages"][1]["content"][0]["type"] == "tool_result"
 
 
-def test_preflight_rejects_user_image():
+def test_preflight_strips_user_image():
     request = MessagesRequest(
         model="m",
         messages=[
@@ -274,8 +274,12 @@ def test_preflight_rejects_user_image():
             rate_window=1,
         )
     )
-    with pytest.raises(InvalidRequestError, match="image"):
-        provider.preflight_stream(request, thinking_enabled=True)
+    provider.preflight_stream(request, thinking_enabled=True)
+    body = provider._build_request_body(request)
+    content = body["messages"][0]["content"]
+    assert isinstance(content, list)
+    assert [block["type"] for block in content] == ["text"]
+    assert "attachment omitted" in content[0]["text"].lower()
 
 
 def test_preflight_rejects_mcp_servers():
@@ -405,3 +409,234 @@ def test_drops_extra_body_from_canonical_request(deepseek_provider):
     r = MessagesRequest.model_validate(raw)
     body = deepseek_provider._build_request_body(r)
     assert "extra_body" not in body
+
+
+def test_normalizes_tool_result_content_array_to_string(deepseek_provider):
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "t1",
+                            "name": "list_dir",
+                            "input": {"path": "/"},
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t1",
+                            "content": [
+                                {"type": "text", "text": "file1.txt"},
+                                {"type": "text", "text": "file2.txt"},
+                            ],
+                        }
+                    ],
+                },
+            ],
+        }
+    )
+
+    body = deepseek_provider._build_request_body(request)
+
+    tool_result = body["messages"][1]["content"][0]
+    assert tool_result["type"] == "tool_result"
+    assert isinstance(tool_result["content"], str)
+    assert "file1.txt" in tool_result["content"]
+    assert "file2.txt" in tool_result["content"]
+
+
+def test_normalizes_tool_result_content_dict_to_string(deepseek_provider):
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "t1",
+                            "name": "get_data",
+                            "input": {},
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t1",
+                            "content": {"status": "success", "data": [1, 2, 3]},
+                        }
+                    ],
+                },
+            ],
+        }
+    )
+
+    body = deepseek_provider._build_request_body(request)
+
+    tool_result = body["messages"][1]["content"][0]
+    assert tool_result["type"] == "tool_result"
+    assert isinstance(tool_result["content"], str)
+    assert '"status": "success"' in tool_result["content"]
+
+
+def test_strips_document_blocks_for_deepseek(deepseek_provider):
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t1",
+                            "content": "PDF text extracted",
+                        },
+                        {
+                            "type": "document",
+                            "source": {"type": "file", "file_id": "file_abc"},
+                            "cache_control": {"type": "ephemeral"},
+                        },
+                    ],
+                },
+            ],
+        }
+    )
+
+    body = deepseek_provider._build_request_body(request)
+
+    content = body["messages"][0]["content"]
+    block_types = [block["type"] for block in content]
+    assert "document" not in block_types
+    assert "tool_result" in block_types
+
+
+def test_strips_image_block_inside_tool_result(deepseek_provider):
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "t1",
+                            "name": "Read",
+                            "input": {"path": "shot.png"},
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t1",
+                            "content": [
+                                {"type": "text", "text": "screenshot saved"},
+                                {
+                                    "type": "image",
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": "image/png",
+                                        "data": "abc",
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                },
+            ],
+        }
+    )
+
+    body = deepseek_provider._build_request_body(request)
+
+    tool_result = body["messages"][1]["content"][0]
+    assert tool_result["type"] == "tool_result"
+    assert isinstance(tool_result["content"], str)
+    assert "screenshot saved" in tool_result["content"]
+    assert "base64" not in tool_result["content"]
+    assert "abc" not in tool_result["content"]
+
+
+def test_attachment_only_tool_result_replaced_with_placeholder(deepseek_provider):
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "t1",
+                            "name": "Screenshot",
+                            "input": {},
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t1",
+                            "content": [
+                                {
+                                    "type": "document",
+                                    "source": {"type": "file", "file_id": "file_pdf"},
+                                },
+                            ],
+                        }
+                    ],
+                },
+            ],
+        }
+    )
+
+    body = deepseek_provider._build_request_body(request)
+
+    tool_result = body["messages"][1]["content"][0]
+    assert tool_result["type"] == "tool_result"
+    assert isinstance(tool_result["content"], str)
+    assert "attachment omitted" in tool_result["content"].lower()
+
+
+def test_attachment_only_message_replaced_with_placeholder(deepseek_provider):
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "document",
+                            "source": {"type": "file", "file_id": "file_pdf"},
+                        },
+                    ],
+                },
+            ],
+        }
+    )
+
+    body = deepseek_provider._build_request_body(request)
+
+    content = body["messages"][0]["content"]
+    assert len(content) == 1
+    assert content[0]["type"] == "text"
+    assert "attachment omitted" in content[0]["text"].lower()

@@ -134,10 +134,14 @@ class TestSettings:
 
         monkeypatch.setenv("OPENROUTER_API_KEYS", "or-1, or-2 or-3")
         monkeypatch.setenv("OPENROUTER_KEY_USAGE_LIMIT", "25")
+        monkeypatch.setenv("KIMI_API_KEYS", "kimi-1, kimi-2")
+        monkeypatch.setenv("KIMI_KEY_USAGE_LIMIT", "5")
         settings = Settings()
 
         assert settings.open_router_api_keys == ("or-1", "or-2", "or-3")
         assert settings.open_router_key_usage_limit == 25
+        assert settings.kimi_api_keys == ("kimi-1", "kimi-2")
+        assert settings.kimi_key_usage_limit == 5
 
     def test_provider_key_usage_limit_rejects_negative(self, monkeypatch):
         from config.settings import Settings

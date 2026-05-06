@@ -62,15 +62,21 @@ def test_claude_cli_prompt_when_available(
         env["ANTHROPIC_BASE_URL"] = server.base_url
         if smoke_config.settings.anthropic_auth_token:
             env["ANTHROPIC_AUTH_TOKEN"] = smoke_config.settings.anthropic_auth_token
-        result = subprocess.run(
-            [claude_bin, "-p", "Reply with exactly FCC_SMOKE_PONG"],
-            cwd=tmp_path,
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=smoke_config.timeout_s,
-            check=False,
-        )
+            env["ANTHROPIC_API_KEY"] = smoke_config.settings.anthropic_auth_token
+        try:
+            result = subprocess.run(
+                [claude_bin, "-p", "Reply with exactly FCC_SMOKE_PONG"],
+                cwd=tmp_path,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=smoke_config.timeout_s,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            skip_upstream_unavailable(
+                "Claude CLI reached the local proxy but provider response timed out"
+            )
         server_log = server.log_path.read_text(encoding="utf-8", errors="replace")
     assert result.returncode == 0, result.stderr or result.stdout
     assert "POST /v1/messages" in server_log, (

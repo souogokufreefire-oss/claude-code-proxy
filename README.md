@@ -12,7 +12,7 @@ Use Claude Code CLI, VS Code, or JetBrains ACP through your own Anthropic-compat
 [![Code style: Ruff](https://img.shields.io/badge/code%20formatting-ruff-f5a623.svg?style=for-the-badge)](https://github.com/astral-sh/ruff)
 [![Logging: Loguru](https://img.shields.io/badge/logging-loguru-4ecdc4.svg?style=for-the-badge)](https://github.com/Delgan/loguru)
 
-Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to hosted and local upstream providers. It keeps Claude Code's client-side protocol stable while letting you choose NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, or Together AI.
+Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to hosted and local upstream providers. It keeps Claude Code's client-side protocol stable while letting you choose NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, Together AI, or Kimi.
 
 [Quick Start](#quick-start) · [Providers](#choose-a-provider) · [Clients](#connect-claude-code) · [Troubleshooting](#troubleshooting) · [Development](#development)
 
@@ -25,7 +25,7 @@ Claude Code Proxy routes Anthropic Messages API traffic from Claude Code to host
 ## What You Get
 
 - Drop-in proxy for Claude Code's Anthropic API calls.
-- Thirteen provider backends: NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, and Together AI.
+- Fourteen provider backends: NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, CLIProxyAPI, Groq, Cerebras, Together AI, and Kimi.
 - Per-model routing: send Opus, Sonnet, Haiku, and fallback traffic to different providers.
 - Streaming, tool use, reasoning/thinking block handling, and local request optimizations.
 
@@ -140,6 +140,7 @@ provider_id/model/name
 | Groq | `groq/...` | OpenAI chat translation | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
 | Cerebras | `cerebras/...` | OpenAI chat translation | `CEREBRAS_API_KEY` | `https://api.cerebras.ai/v1` |
 | Together AI | `together/...` | OpenAI chat translation | `TOGETHER_API_KEY` | `https://api.together.xyz/v1` |
+| Kimi / Moonshot | `kimi/...` | OpenAI chat translation | `KIMI_API_KEY` | `https://api.moonshot.ai/v1` |
 
 <details>
 <summary><b>NVIDIA NIM</b></summary>
@@ -371,6 +372,20 @@ Standard OpenAI-compatible API — the most vanilla of the OpenAI Chat providers
 </details>
 
 <details>
+<summary><b>Kimi / Moonshot</b></summary>
+
+Get a key at [platform.moonshot.ai/console/api-keys](https://platform.moonshot.ai/console/api-keys).
+
+```dotenv
+KIMI_API_KEY="***"
+MODEL="kimi/kimi-k2.6"
+```
+
+Kimi uses Moonshot's OpenAI-compatible chat API. Reasoning history is replayed as `reasoning_content` for tool-call turns when thinking is enabled.
+
+</details>
+
+<details>
 <summary><b>Mix providers by model tier</b></summary>
 
 Each tier can use a different provider:
@@ -495,6 +510,9 @@ CEREBRAS_KEY_USAGE_LIMIT=0
 TOGETHER_API_KEY=***
 TOGETHER_API_KEYS=***
 TOGETHER_KEY_USAGE_LIMIT=0
+KIMI_API_KEY=***
+KIMI_API_KEYS=***
+KIMI_KEY_USAGE_LIMIT=0
 ```
 
 Hosted providers can use fallback keys with comma or whitespace separated
@@ -517,6 +535,7 @@ CLIPROXYAPI_PROXY=""
 GROQ_PROXY=""
 CEREBRAS_PROXY=""
 TOGETHER_PROXY=""
+KIMI_PROXY=""
 ```
 
 ### Rate Limits And Timeouts
@@ -610,7 +629,7 @@ Claude Code Proxy (:8082)
         |
         | provider-specific request/stream adapter
         v
-NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI / Groq / Cerebras / Together
+NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fireworks AI / vLLM / CLIProxyAPI / Groq / Cerebras / Together / Kimi
 ```
 
 Important pieces:
@@ -619,7 +638,7 @@ Important pieces:
 - Model routing resolves the Claude model name to `MODEL_OPUS`, `MODEL_SONNET`, `MODEL_HAIKU`, or `MODEL`.
 - NIM uses OpenAI chat streaming translated into Anthropic SSE.
 - OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, and CLIProxyAPI use Anthropic Messages style transports.
-- Groq, Cerebras, and Together AI use OpenAI chat streaming translated into Anthropic SSE.
+- Groq, Cerebras, Together AI, and Kimi use OpenAI chat streaming translated into Anthropic SSE.
 - The proxy normalizes thinking blocks, tool calls, token usage metadata, and provider errors into the shape Claude Code expects.
 - Request optimizations answer trivial Claude Code probes locally to save latency and quota.
 
