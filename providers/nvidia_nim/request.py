@@ -47,10 +47,10 @@ def _clone_strip_extra_body(
 
     Returns ``None`` when there is no ``extra_body`` dict or ``strip`` reports no change.
     """
-    cloned_body = deepcopy(body)
-    extra_body = cloned_body.get("extra_body")
-    if not isinstance(extra_body, dict):
+    if not isinstance(body.get("extra_body"), dict):
         return None
+    cloned_body = deepcopy(body)
+    extra_body = cloned_body["extra_body"]
     if not strip(extra_body):
         return None
     if not extra_body:
@@ -87,6 +87,71 @@ def _strip_message_reasoning_content(body: dict[str, Any]) -> bool:
     return removed
 
 
+def _schema_has_booleans(value: Any) -> bool:
+    """Return whether a schema tree contains boolean subschemas."""
+    if isinstance(value, bool):
+        return True
+    if isinstance(value, dict):
+        return any(_schema_has_booleans(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_schema_has_booleans(item) for item in value)
+    return False
+
+
+def _sanitize_nim_schema_node(value: Any) -> tuple[bool, Any]:
+    """Remove boolean JSON Schema subschemas that hosted NIM rejects."""
+    if isinstance(value, bool):
+        return True, {}
+    if isinstance(value, list):
+        changed = False
+        sanitized: list[Any] = []
+        for item in value:
+            item_changed, new_item = _sanitize_nim_schema_node(item)
+            changed = changed or item_changed
+            sanitized.append(new_item)
+        return changed, sanitized
+    if isinstance(value, dict):
+        changed = False
+        sanitized: dict[str, Any] = {}
+        for key, item in value.items():
+            item_changed, new_item = _sanitize_nim_schema_node(item)
+            changed = changed or item_changed
+            sanitized[key] = new_item
+        return changed, sanitized
+    return False, value
+
+
+def _sanitize_nim_tool_schemas(body: dict[str, Any]) -> None:
+    tools = body.get("tools")
+    if not isinstance(tools, list):
+        return
+
+    sanitized_tools: list[Any] = []
+    changed = False
+    for tool in tools:
+        if not isinstance(tool, dict):
+            sanitized_tools.append(tool)
+            continue
+        function = tool.get("function")
+        if not isinstance(function, dict):
+            sanitized_tools.append(tool)
+            continue
+        parameters = function.get("parameters")
+        did_sanitize, sanitized_parameters = _sanitize_nim_schema_node(parameters)
+        if not did_sanitize:
+            sanitized_tools.append(tool)
+            continue
+        new_function = dict(function)
+        new_function["parameters"] = sanitized_parameters
+        new_tool = dict(tool)
+        new_tool["function"] = new_function
+        sanitized_tools.append(new_tool)
+        changed = True
+
+    if changed:
+        body["tools"] = sanitized_tools
+
+
 def _set_extra(
     extra_body: dict[str, Any], key: str, value: Any, ignore_value: Any = None
 ) -> None:
@@ -111,9 +176,13 @@ def clone_body_without_chat_template(body: dict[str, Any]) -> dict[str, Any] | N
 
 def clone_body_without_reasoning_content(body: dict[str, Any]) -> dict[str, Any] | None:
     """Clone a request body and strip assistant message ``reasoning_content`` fields."""
-    cloned_body = deepcopy(body)
-    if not _strip_message_reasoning_content(cloned_body):
+    messages = body.get("messages")
+    if not isinstance(messages, list):
         return None
+    if not any(isinstance(m, dict) and "reasoning_content" in m for m in messages):
+        return None
+    cloned_body = deepcopy(body)
+    _strip_message_reasoning_content(cloned_body)
     return cloned_body
 
 
@@ -192,6 +261,17 @@ def build_request_body(
 
     if extra_body:
         body["extra_body"] = extra_body
+
+    tools = body.get("tools")
+    if isinstance(tools, list) and any(
+        _schema_has_booleans(
+            tool.get("function", {}).get("parameters")
+            if isinstance(tool, dict)
+            else None
+        )
+        for tool in tools
+    ):
+        _sanitize_nim_tool_schemas(body)
 
     logger.debug(
         "NIM_REQUEST: conversion done model={} msgs={} tools={}",

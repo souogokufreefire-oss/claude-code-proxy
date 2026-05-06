@@ -22,6 +22,7 @@ from core.anthropic.stream_contracts import (
     has_tool_use,
     parse_sse_lines,
     text_content,
+    thinking_content,
 )
 from smoke.lib.config import ProviderModel, SmokeConfig, auth_headers
 from smoke.lib.server import RunningServer, start_server
@@ -363,6 +364,8 @@ def tool_use_blocks(events: list[SSEEvent]) -> list[dict[str, Any]]:
 
 def assert_product_stream(events: list[SSEEvent]) -> None:
     assert_anthropic_stream_contract(events)
-    assert text_content(events).strip() or has_tool_use(events), (
-        "product stream emitted neither text nor tool_use"
-    )
+    assert (
+        text_content(events).strip()
+        or thinking_content(events).strip()
+        or has_tool_use(events)
+    ), "product stream emitted neither text, thinking, nor tool_use"

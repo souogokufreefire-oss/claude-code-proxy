@@ -8,6 +8,7 @@ grep/filter.
 
 import json
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -91,10 +92,10 @@ def configure_logging(
     # Truncate log file on fresh start for clean debugging
     Path(log_file).write_text("")
 
-    # Add file sink: JSON lines, DEBUG level, context vars at top level
+    # Add file sink: JSON lines, INFO by default, context vars at top level
     logger.add(
         log_file,
-        level="DEBUG",
+        level=os.getenv("LOG_FILE_LEVEL", "INFO"),
         format=_serialize_with_context,
         encoding="utf-8",
         mode="a",

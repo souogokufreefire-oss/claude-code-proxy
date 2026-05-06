@@ -7,6 +7,7 @@ import pytest
 from config.nim import NimSettings
 from core.anthropic import set_if_not_none
 from providers.nvidia_nim.request import (
+    _schema_has_booleans,
     _set_extra,
     build_request_body,
     clone_body_without_chat_template,
@@ -229,6 +230,38 @@ class TestBuildRequestBody:
             "reasoning_effort",
         ):
             assert param not in extra
+
+    def test_boolean_tool_schema_subschemas_are_sanitized_for_nim(self):
+        req = MagicMock()
+        req.model = "test"
+        req.messages = [MagicMock(role="user", content="hi")]
+        req.max_tokens = 100
+        req.system = None
+        req.temperature = None
+        req.top_p = None
+        req.stop_sequences = None
+        req.tool_choice = None
+        req.extra_body = None
+        req.top_k = None
+        req.tools = [
+            MagicMock(
+                name="demo",
+                description="demo tool",
+                input_schema={
+                    "type": "object",
+                    "properties": {"ok": True, "bad": False},
+                },
+            )
+        ]
+
+        body = build_request_body(req, NimSettings(), thinking_enabled=False)
+
+        schema = body["tools"][0]["function"]["parameters"]
+        assert schema["properties"] == {"ok": {}, "bad": {}}
+
+    def test_schema_boolean_prescan(self):
+        assert _schema_has_booleans({"anyOf": [False, {"type": "string"}]}) is True
+        assert _schema_has_booleans({"type": "object", "properties": {}}) is False
 
     def test_assistant_thinking_blocks_removed_when_disabled(self):
         req = MagicMock()

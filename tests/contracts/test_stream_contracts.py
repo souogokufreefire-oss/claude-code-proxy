@@ -16,6 +16,7 @@ from core.anthropic.stream_contracts import (
     text_content,
     thinking_content,
 )
+from smoke.lib.e2e import assert_product_stream
 
 
 def test_interleaved_thinking_text_blocks_are_valid() -> None:
@@ -55,6 +56,22 @@ def test_mixed_reasoning_content_and_think_tags_keep_order() -> None:
     assert_anthropic_stream_contract(events)
     assert thinking_content(events) == "reasoning fieldtagged"
     assert text_content(events) == " visible  done"
+
+
+def test_product_stream_accepts_reasoning_only_native_model_output() -> None:
+    builder = SSEBuilder("msg_reasoning_only", "qwen3:latest")
+    chunks = [builder.message_start()]
+    chunks.extend(builder.ensure_thinking_block())
+    chunks.append(builder.emit_thinking_delta("reasoning only from local model"))
+    chunks.extend(builder.close_all_blocks())
+    chunks.append(builder.message_delta("end_turn", 8))
+    chunks.append(builder.message_stop())
+
+    events = parse_sse_text("".join(chunks))
+
+    assert_product_stream(events)
+    assert text_content(events) == ""
+    assert thinking_content(events) == "reasoning only from local model"
 
 
 def test_redacted_thinking_block_start_stop_is_valid() -> None:

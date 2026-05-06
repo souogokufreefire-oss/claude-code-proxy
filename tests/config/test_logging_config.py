@@ -83,3 +83,22 @@ def test_httpx_resets_to_notset_when_verbose_third_party(tmp_path) -> None:
     log_file = str(tmp_path / "verbose.log")
     configure_logging(log_file, force=True, verbose_third_party=True)
     assert logging.getLogger("httpx").level == logging.NOTSET
+
+
+def test_file_sink_defaults_to_info_and_can_enable_debug(tmp_path, monkeypatch) -> None:
+    info_log = str(tmp_path / "info.log")
+    monkeypatch.delenv("LOG_FILE_LEVEL", raising=False)
+    configure_logging(info_log, force=True)
+    logger.debug("hidden debug")
+    logger.info("visible info")
+    logger.complete()
+    text = Path(info_log).read_text(encoding="utf-8")
+    assert "visible info" in text
+    assert "hidden debug" not in text
+
+    debug_log = str(tmp_path / "debug.log")
+    monkeypatch.setenv("LOG_FILE_LEVEL", "DEBUG")
+    configure_logging(debug_log, force=True)
+    logger.debug("visible debug")
+    logger.complete()
+    assert "visible debug" in Path(debug_log).read_text(encoding="utf-8")
