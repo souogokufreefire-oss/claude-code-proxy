@@ -88,6 +88,8 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
     "lmstudio": ProviderDescriptor(
         provider_id="lmstudio",
         transport_type="anthropic_messages",
+        credential_env="LM_STUDIO_API_KEY",
+        credential_attr="lm_studio_api_key",
         static_credential="lm-studio",
         default_base_url=LMSTUDIO_DEFAULT_BASE,
         base_url_attr="lm_studio_base_url",

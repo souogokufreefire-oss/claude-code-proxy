@@ -37,6 +37,7 @@ def _make_settings(**overrides):
     mock.kimi_api_key = "test_kimi_key"
     mock.kimi_api_keys = ()
     mock.kimi_key_usage_limit = 0
+    mock.lm_studio_api_key = "lm-studio"
     mock.lm_studio_base_url = "http://localhost:1234/v1"
     mock.llamacpp_base_url = "http://localhost:8080/v1"
     mock.ollama_base_url = "http://localhost:11434"
@@ -120,6 +121,20 @@ def test_build_provider_config_accepts_api_keys_without_legacy_primary():
 
     assert config.api_key == "fallback-1"
     assert config.api_keys == ("fallback-1", "fallback-2")
+
+
+def test_lmstudio_uses_configured_api_key_or_static_default():
+    configured = build_provider_config(
+        PROVIDER_DESCRIPTORS["lmstudio"],
+        _make_settings(lm_studio_api_key="custom-local-key"),
+    )
+    fallback = build_provider_config(
+        PROVIDER_DESCRIPTORS["lmstudio"],
+        _make_settings(lm_studio_api_key=""),
+    )
+
+    assert configured.api_key == "custom-local-key"
+    assert fallback.api_key == "lm-studio"
 
 
 def test_create_provider_uses_native_openrouter_by_default():

@@ -44,6 +44,7 @@ def _make_mock_settings(**overrides):
     mock.provider_retry_max_delay = 120.0
     mock.open_router_api_key = "test_openrouter_key"
     mock.deepseek_api_key = "test_deepseek_key"
+    mock.lm_studio_api_key = "lm-studio"
     mock.lm_studio_base_url = "http://localhost:1234/v1"
     mock.ollama_base_url = "http://localhost:11434"
     mock.nim = NimSettings()

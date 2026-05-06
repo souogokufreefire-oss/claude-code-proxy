@@ -154,14 +154,15 @@ def _int_attr(settings: Settings, attr_name: str | None, default: int = 0) -> in
 
 
 def _credential_for(descriptor: ProviderDescriptor, settings: Settings) -> str:
-    if descriptor.static_credential is not None:
-        return descriptor.static_credential
     if descriptor.credential_attr:
         credential = _string_attr(settings, descriptor.credential_attr)
         if credential:
             return credential
         fallbacks = _string_tuple_attr(settings, descriptor.credential_list_attr)
-        return fallbacks[0] if fallbacks else ""
+        if fallbacks:
+            return fallbacks[0]
+    if descriptor.static_credential is not None:
+        return descriptor.static_credential
     return ""
 
 

@@ -26,6 +26,7 @@ class TestSettings:
 
         monkeypatch.delenv("MODEL", raising=False)
         monkeypatch.delenv("HTTP_READ_TIMEOUT", raising=False)
+        monkeypatch.delenv("HTTP_WRITE_TIMEOUT", raising=False)
         monkeypatch.delenv("HTTP_CONNECT_TIMEOUT", raising=False)
         monkeypatch.delenv("ENABLE_WEB_SERVER_TOOLS", raising=False)
         monkeypatch.setitem(Settings.model_config, "env_file", ())
@@ -40,6 +41,7 @@ class TestSettings:
         assert isinstance(settings.fast_prefix_detection, bool)
         assert isinstance(settings.enable_model_thinking, bool)
         assert settings.http_read_timeout is None
+        assert settings.http_write_timeout == 60.0
         assert settings.http_connect_timeout == HTTP_CONNECT_TIMEOUT_DEFAULT
         assert settings.enable_web_server_tools is False
         assert settings.log_raw_api_payloads is False
@@ -82,6 +84,19 @@ class TestSettings:
         monkeypatch.setenv("LM_STUDIO_BASE_URL", "http://custom:5678/v1")
         settings = Settings()
         assert settings.lm_studio_base_url == "http://custom:5678/v1"
+
+    def test_lm_studio_api_key_defaults_and_reads_env(self, monkeypatch):
+        """LM_STUDIO_API_KEY is optional but configurable."""
+        from config.settings import Settings
+
+        monkeypatch.delenv("LM_STUDIO_API_KEY", raising=False)
+        monkeypatch.setitem(Settings.model_config, "env_file", ())
+        settings = Settings()
+        assert settings.lm_studio_api_key == "lm-studio"
+
+        monkeypatch.setenv("LM_STUDIO_API_KEY", "custom-local-key")
+        settings = Settings()
+        assert settings.lm_studio_api_key == "custom-local-key"
 
     def test_ollama_base_url_defaults_to_root(self, monkeypatch):
         """OLLAMA_BASE_URL defaults to the Anthropic-compatible Ollama root URL."""
@@ -193,7 +208,7 @@ class TestSettings:
         monkeypatch.setitem(Settings.model_config, "env_file", ())
         settings = Settings()
         assert settings.http_connect_timeout == HTTP_CONNECT_TIMEOUT_DEFAULT
-        assert HTTP_CONNECT_TIMEOUT_DEFAULT == 10.0
+        assert HTTP_CONNECT_TIMEOUT_DEFAULT == 60.0
 
     def test_enable_model_thinking_from_env(self, monkeypatch):
         """ENABLE_MODEL_THINKING env var is loaded into settings."""

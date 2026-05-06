@@ -130,6 +130,9 @@ class Settings(BaseSettings):
         default="http://localhost:1234/v1",
         validation_alias="LM_STUDIO_BASE_URL",
     )
+    lm_studio_api_key: str = Field(
+        default="lm-studio", validation_alias="LM_STUDIO_API_KEY"
+    )
 
     # ==================== Llama.cpp Config ====================
     llamacpp_base_url: str = Field(
@@ -269,7 +272,7 @@ class Settings(BaseSettings):
         default=None, validation_alias="HTTP_READ_TIMEOUT"
     )
     http_write_timeout: float = Field(
-        default=10.0, validation_alias="HTTP_WRITE_TIMEOUT"
+        default=60.0, validation_alias="HTTP_WRITE_TIMEOUT"
     )
     http_connect_timeout: float = Field(
         default=HTTP_CONNECT_TIMEOUT_DEFAULT,
