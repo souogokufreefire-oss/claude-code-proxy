@@ -187,3 +187,42 @@ together.
 - Telegram/bot-only PRs and issues.
 - Legacy syntax cleanup already covered by the Python 3.14 toolchain.
 - Pre-trim CLI/session-management changes that no longer map to this proxy.
+
+## Weekly Audit - 2026-05-09
+
+Refreshed upstream PRs (30) and issues (50) since last audit (2026-04-29).
+
+### Applied
+
+- [x] PR #388: read-only filesystem → stderr logging fallback
+- [x] PR #382: tiktoken special-token crash (`disallowed_special: ()`)
+- [x] PR #383: SSE wrapping for optimization handler responses
+- [x] Commit 3bde98a: raise write/connect timeouts to 120s
+
+### Already Applied
+
+- [x] PR #360: `betas` body field from Claude Code (already had `exclude=True`)
+- [x] PR #358: deepseek document blocks + tool_result normalize
+  (already have ContentBlockDocument + deepseek strip logic)
+- [x] PR #379: Anthropic image block → OpenAI image_url conversion
+  (our fork has more thorough _UserContentParts + _convert_user_image_block)
+
+### Backlog / Design Review Needed
+
+- PR #318: multi-feature (MAX_MESSAGES, CONTEXT_MAX_TOKENS, NIM_PARALLEL_TOOL_CALLS,
+  SSE fix, Claude 4 IDs, tool schema hint) — too broad for direct cherry-pick;
+  individual pieces need local design review
+- PR #317: perf hot-path optimizations for free-tier providers
+- PR #341: API key pooling — already in Design Review Required section
+- PR #355: DS2API provider — new provider, backlog
+- PR #335: Kimi provider — config exists but no provider code; backlog
+- PR #399: model-cache persistence (closed, may be superseded by #318)
+
+### Skip
+
+- Docs-only: PRs #361, #354, #366
+- Kimi $refs (#378): no Kimi provider code in fork
+- PR #395: broad provider architecture refactor (closed, too invasive)
+- PR #393: custom OpenAI-compatible providers (closed, likely superseded)
+- PR #321: auth token fallback (closed, design needs local review)
+- Issue noise: majority are user support / config issues, not actionable
