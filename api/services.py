@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import traceback
 import uuid
 from collections.abc import AsyncIterator, Callable
@@ -19,7 +20,7 @@ from providers.exceptions import InvalidRequestError, ProviderError
 
 from .model_router import ModelRouter
 from .models.anthropic import MessagesRequest, TokenCountRequest
-from .models.responses import TokenCountResponse
+from .models.responses import MessagesResponse, TokenCountResponse
 from .optimization_handlers import try_optimizations
 from .web_tools.egress import WebFetchEgressPolicy
 from .web_tools.request import (
@@ -83,6 +84,83 @@ def _require_non_empty_messages(messages: list[Any]) -> None:
         raise InvalidRequestError("messages cannot be empty")
 
 
+async def _messages_response_to_sse_stream(
+    response: MessagesResponse,
+) -> AsyncIterator[str]:
+    """Convert a :class:`MessagesResponse` into an Anthropic SSE event stream.
+
+    Optimization handlers return complete responses, but Claude Code always
+    sends ``stream=True`` and expects SSE.  Without this conversion the client
+    falls back to non-streaming mode and logs a stream error.
+    """
+
+    def _event(event_type: str, data: dict) -> str:
+        return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
+
+    input_tokens = response.usage.input_tokens
+    output_tokens = response.usage.output_tokens
+    stop_reason = response.stop_reason or "end_turn"
+
+    yield _event(
+        "message_start",
+        {
+            "type": "message_start",
+            "message": {
+                "id": response.id,
+                "type": "message",
+                "role": "assistant",
+                "content": [],
+                "model": response.model,
+                "stop_reason": None,
+                "stop_sequence": None,
+                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+            },
+        },
+    )
+    for idx, item in enumerate(response.content):
+        # NOTE: optimization handlers currently only return text blocks.
+        # If a handler ever returns tool_use or image content, the
+        # hardcoded text_delta / text field below must be generalized.
+        if isinstance(item, dict):
+            block_type = item.get("type", "text")
+            text = item.get("text", "")
+        elif hasattr(item, "type"):
+            block_type = getattr(item, "type", "text")
+            text = getattr(item, "text", "")
+        else:
+            block_type = "text"
+            text = str(item)
+        yield _event(
+            "content_block_start",
+            {
+                "type": "content_block_start",
+                "index": idx,
+                "content_block": {"type": block_type, "text": ""},
+            },
+        )
+        yield _event(
+            "content_block_delta",
+            {
+                "type": "content_block_delta",
+                "index": idx,
+                "delta": {"type": "text_delta", "text": text},
+            },
+        )
+        yield _event(
+            "content_block_stop",
+            {"type": "content_block_stop", "index": idx},
+        )
+    yield _event(
+        "message_delta",
+        {
+            "type": "message_delta",
+            "delta": {"stop_reason": stop_reason, "stop_sequence": None},
+            "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens},
+        },
+    )
+    yield _event("message_stop", {"type": "message_stop"})
+
+
 class ClaudeProxyService:
     """Coordinate request optimization, model routing, token count, and providers."""
 
@@ -134,7 +212,9 @@ class ClaudeProxyService:
 
             optimized = try_optimizations(routed.request, self._settings)
             if optimized is not None:
-                return optimized
+                return anthropic_sse_streaming_response(
+                    _messages_response_to_sse_stream(optimized)
+                )
             logger.debug("No optimization matched, routing to provider")
 
             provider = self._provider_getter(routed.resolved.provider_id)

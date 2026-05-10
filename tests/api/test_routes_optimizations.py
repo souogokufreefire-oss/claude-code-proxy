@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import pytest
@@ -8,6 +9,19 @@ from api.dependencies import get_settings
 from config.settings import Settings
 
 app = create_app()
+
+
+def _extract_text_from_sse(data: str) -> str:
+    """Extract concatenated text_delta content from an SSE stream response."""
+    parts = []
+    for line in data.split("\n"):
+        if not line.startswith("data: "):
+            continue
+        event = json.loads(line[6:])
+        delta = event.get("delta", {})
+        if delta.get("type") == "text_delta":
+            parts.append(delta.get("text", ""))
+    return "".join(parts)
 
 
 @pytest.fixture
@@ -46,8 +60,9 @@ def test_create_message_fast_prefix_detection(client, mock_settings):
         response = client.post("/v1/messages", json=payload)
 
     assert response.status_code == 200
-    data = response.json()
-    assert "/ask" in data["content"][0]["text"]
+    assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
+    text = _extract_text_from_sse(response.text)
+    assert "/ask" in text
 
     app.dependency_overrides.clear()
 
@@ -65,7 +80,8 @@ def test_create_message_quota_check_mock(client, mock_settings):
         response = client.post("/v1/messages", json=payload)
 
     assert response.status_code == 200
-    assert "Quota check passed" in response.json()["content"][0]["text"]
+    text = _extract_text_from_sse(response.text)
+    assert "Quota check passed" in text
 
     app.dependency_overrides.clear()
 
@@ -85,7 +101,8 @@ def test_create_message_title_generation_skip(client, mock_settings):
         response = client.post("/v1/messages", json=payload)
 
     assert response.status_code == 200
-    assert "Conversation" in response.json()["content"][0]["text"]
+    text = _extract_text_from_sse(response.text)
+    assert "Conversation" in text
 
     app.dependency_overrides.clear()
 

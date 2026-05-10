@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import sys
 from pathlib import Path
 
 from loguru import logger
@@ -89,18 +90,25 @@ def configure_logging(
     # Remove default loguru handler (writes to stderr)
     logger.remove()
 
-    # Truncate log file on fresh start for clean debugging
-    Path(log_file).write_text("")
+    try:
+        # Truncate log file on fresh start for clean debugging.
+        Path(log_file).write_text("")
 
-    # Add file sink: JSON lines, INFO by default, context vars at top level
-    logger.add(
-        log_file,
-        level=os.getenv("LOG_FILE_LEVEL", "INFO"),
-        format=_serialize_with_context,
-        encoding="utf-8",
-        mode="a",
-        rotation="50 MB",
-    )
+        # Add file sink: JSON lines, INFO by default, context vars at top level.
+        logger.add(
+            log_file,
+            level=os.getenv("LOG_FILE_LEVEL", "INFO"),
+            format=_serialize_with_context,
+            encoding="utf-8",
+            mode="a",
+            rotation="50 MB",
+        )
+    except OSError:
+        # Serverless environments can have read-only filesystems at import time.
+        logger.add(sys.stderr, level="DEBUG", format=_serialize_with_context)
+        logger.warning(
+            "Log file '{}' is not writable; using stderr sink instead", log_file
+        )
 
     # Intercept stdlib logging: route all root logger output to loguru
     intercept = InterceptHandler()

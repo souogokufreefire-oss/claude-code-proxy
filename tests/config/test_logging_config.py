@@ -1,5 +1,6 @@
 """Tests for config/logging_config.py."""
 
+import errno
 import json
 import logging
 from pathlib import Path
@@ -102,3 +103,17 @@ def test_file_sink_defaults_to_info_and_can_enable_debug(tmp_path, monkeypatch) 
     logger.debug("visible debug")
     logger.complete()
     assert "visible debug" in Path(debug_log).read_text(encoding="utf-8")
+
+
+def test_configure_logging_falls_back_when_log_file_unwritable(
+    tmp_path, monkeypatch
+) -> None:
+    log_file = str(tmp_path / "readonly.log")
+
+    def _raise_readonly(*_args, **_kwargs) -> str:
+        raise OSError(errno.EROFS, "Read-only file system")
+
+    monkeypatch.setattr(Path, "write_text", _raise_readonly)
+
+    configure_logging(log_file, force=True)
+    logging.getLogger("test.readonly").info("falls back to stderr")
