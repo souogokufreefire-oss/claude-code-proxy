@@ -1,0 +1,90 @@
+# Backlog
+
+> Last updated: 2026-07-07
+
+Tracked work items, ideas, and deferred work. Prioritized within each section.
+Items move to `CHANGELOG.md` when shipped.
+
+Priority levels: **P0** (blocking/security), **P1** (next release), **P2** (near-term), **P3** (backlog/idea).
+
+---
+
+## Security & Maintenance
+
+- [x] **(DONE 2026-07-07)** Patch 21 dependabot security advisories (starlette, aiohttp, python-multipart, pydantic-settings)
+- [x] **(DONE 2026-07-07)** Bump setup-uv GitHub Action to v8.2.0
+- [ ] **P2** Close 6 stale dependabot PRs (#12, #16, #17, #18, #19, #20) — superseded by consolidated dependency upgrade commit
+- [ ] **P2** Enable dependabot auto-merge for minor/patch grouped updates (reduce PR noise)
+- [ ] **P3** Pin remaining GitHub Actions to commit SHAs (checkout already pinned)
+
+## Provider Improvements
+
+- [ ] **P1** Add Kimi provider to CHANGELOG (shipped after 2.1.0, code+README docs exist but release notes missing)
+- [ ] **P1** Verify thinking/reasoning support on all 14 providers via smoke tests
+- [ ] **P2** Smoke-test Cerebras `reasoning_effort` and `clear_thinking` extra_body
+- [ ] **P2** Verify vLLM thinking token support (upstream vllm#29915 may be resolved)
+- [ ] **P2** Smoke-test Fireworks AI reasoning block filtering (may need ThinkTagParser)
+
+## Provider Expansion (Candidates)
+
+Sourced from `UPSTREAM_AUDIT_PLAN.md` backlog section and community demand:
+
+- [ ] **P3** MiniMax — OpenAI-compatible, popular for agent workflows
+- [ ] **P3** Z.AI GLM direct — currently via NIM, native endpoint possible
+- [ ] **P3** SambaNova — fast inference, OpenAI-compatible
+- [ ] **P3** Vertex AI — Google Cloud Anthropic-compatible endpoint
+- [ ] **P3** Codex CLI bridge — OpenAI coding agent routing
+- [ ] **P3** OpenCode bridge — alternative coding agent routing
+- [ ] **P3** Cloudflare Workers AI — edge inference
+- [ ] **P3** DS2API — upstream PR #355, new provider
+
+## Upstream Mining
+
+Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
+
+- [ ] **P2** PR #318: multi-feature (MAX_MESSAGES, CONTEXT_MAX_TOKENS, NIM_PARALLEL_TOOL_CALLS, SSE fix, Claude 4 IDs, tool schema hint) — too broad, needs splitting
+- [ ] **P2** PR #317: perf hot-path optimizations for free-tier providers
+- [ ] **P3** PR #341: API key pooling — already in design review, see UPSTREAM_AUDIT_PLAN.md
+- [ ] **P3** PR #399: model-cache persistence (closed, may be superseded by #318)
+
+## Observability
+
+- [ ] **P2** Structured request logging with request IDs (adapt from upstream PR #202)
+- [ ] **P2** Per-provider latency and error metrics
+- [ ] **P2** Startup model-routing log — show effective provider/model per tier
+- [ ] **P3** Health endpoint (adapt from upstream PR #270, needs local scope review)
+
+## Context Management
+
+- [ ] **P2** Context usage visibility — surface token counts in response metadata
+- [ ] **P2** Graceful context overflow handling (degrade instead of 400)
+- [ ] **P3** Optional compaction for long Claude Code sessions
+- [ ] **P3** MAX_MESSAGES / CONTEXT_MAX_TOKENS tuning (from upstream PR #318)
+
+## Code Quality
+
+- [ ] **P2** Address starlette 1.x testclient deprecation warning (httpx2 migration)
+- [ ] **P3** Clean up `dist/` directory (stale 2.0.0 builds alongside 2.1.0)
+- [ ] **P3** Consider removing `server.log` from repo root (gitignored but present)
+
+## Documentation
+
+- [ ] **P1** Ensure HANDOFF.md, ROADMAP.md, BACKLOG.md stay current
+- [ ] **P2** Add CONTRIBUTING.md for community PRs
+- [ ] **P3** Architecture decision records (ADRs) for major design choices
+
+## Distribution
+
+- [ ] **P3** PyPI publication (`uv publish`)
+- [ ] **P3** Docker image
+- [ ] **P3** Homebrew formula
+
+---
+
+## Completed
+
+- [x] 2026-07-07: Patched 21 security advisories, consolidated 6 dependabot PRs
+- [x] 2026-07-07: Created HANDOFF.md, ROADMAP.md, BACKLOG.md
+- [x] 2026-05-09: Weekly upstream audit — applied PRs #388, #382, #383, timeout raise
+- [x] 2026-04-30: v2.1.0 release — added 7 providers (FriendliAI, Fireworks, vLLM, CLIProxyAPI, Groq, Cerebras, Together)
+- [x] 2026-04-29: v2.0.0 release — proxy-only scope, descriptor-driven providers, constant-time auth, OpenAI image conversion
