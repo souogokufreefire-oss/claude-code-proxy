@@ -1,6 +1,6 @@
 # Roadmap
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 Directional guide for `claude-code-proxy`. Items here are intentions, not
 commitments. For tracked work items, see `BACKLOG.md`.

@@ -1,6 +1,6 @@
 # Backlog
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 Tracked work items, ideas, and deferred work. Prioritized within each section.
 Items move to `CHANGELOG.md` when shipped.
@@ -13,13 +13,14 @@ Priority levels: **P0** (blocking/security), **P1** (next release), **P2** (near
 
 - [x] **(DONE 2026-07-07)** Patch 21 dependabot security advisories (starlette, aiohttp, python-multipart, pydantic-settings)
 - [x] **(DONE 2026-07-07)** Bump setup-uv GitHub Action to v8.2.0
-- [ ] **P2** Close 6 stale dependabot PRs (#12, #16, #17, #18, #19, #20) — superseded by consolidated dependency upgrade commit
-- [ ] **P2** Enable dependabot auto-merge for minor/patch grouped updates (reduce PR noise)
-- [ ] **P3** Pin remaining GitHub Actions to commit SHAs (checkout already pinned)
+- [x] **(DONE 2026-07-07)** Close 6 stale dependabot PRs (#12, #16, #17, #18, #19, #20) — superseded by consolidated dependency upgrade commit
+- [x] **(DONE 2026-07-08)** Enable dependabot auto-merge (repo setting flipped via API; minor/patch updates auto-merge after CI)
+- [x] **(DONE 2026-07-08)** Cap dependabot PR queue size (uv: 5, github-actions: 3) to prevent future pileup
+- [ ] **P3** Pin remaining GitHub Actions to commit SHAs (checkout + setup-uv already pinned)
 
 ## Provider Improvements
 
-- [ ] **P1** Add Kimi provider to CHANGELOG (shipped after 2.1.0, code+README docs exist but release notes missing)
+- [x] **(DONE 2026-07-07)** Add Kimi provider to CHANGELOG (Unreleased section)
 - [ ] **P1** Verify thinking/reasoning support on all 14 providers via smoke tests
 - [ ] **P2** Smoke-test Cerebras `reasoning_effort` and `clear_thinking` extra_body
 - [ ] **P2** Verify vLLM thinking token support (upstream vllm#29915 may be resolved)
@@ -64,12 +65,12 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 ## Code Quality
 
 - [ ] **P2** Address starlette 1.x testclient deprecation warning (httpx2 migration)
-- [ ] **P3** Clean up `dist/` directory (stale 2.0.0 builds alongside 2.1.0)
-- [ ] **P3** Consider removing `server.log` from repo root (gitignored but present)
+- [x] **(DONE 2026-07-07)** Clean up `dist/` directory (stale 2.0.0 builds alongside 2.1.0) — local cruft removal, not tracked
+- [x] **(DONE 2026-07-07)** Remove `server.log` from repo root — local cruft removal, gitignored
 
 ## Documentation
 
-- [ ] **P1** Ensure HANDOFF.md, ROADMAP.md, BACKLOG.md stay current
+- [x] **(DONE 2026-07-08)** Audit and refresh markdown foundation (HANDOFF, ROADMAP, BACKLOG)
 - [ ] **P2** Add CONTRIBUTING.md for community PRs
 - [ ] **P3** Architecture decision records (ADRs) for major design choices
 
@@ -83,8 +84,12 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Completed
 
+- [x] 2026-07-08: Markdown foundation audit and refresh
+- [x] 2026-07-08: Enabled dependabot auto-merge (repo setting + config documentation)
 - [x] 2026-07-07: Patched 21 security advisories, consolidated 6 dependabot PRs
 - [x] 2026-07-07: Created HANDOFF.md, ROADMAP.md, BACKLOG.md
+- [x] 2026-07-07: Added Kimi provider to CHANGELOG (Unreleased section)
+- [x] 2026-07-07: Removed local cruft (dist/, server.log)
 - [x] 2026-05-09: Weekly upstream audit — applied PRs #388, #382, #383, timeout raise
 - [x] 2026-04-30: v2.1.0 release — added 7 providers (FriendliAI, Fireworks, vLLM, CLIProxyAPI, Groq, Cerebras, Together)
 - [x] 2026-04-29: v2.0.0 release — proxy-only scope, descriptor-driven providers, constant-time auth, OpenAI image conversion

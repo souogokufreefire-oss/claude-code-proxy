@@ -1,6 +1,6 @@
 # Handoff Document
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 This document gives a new contributor (human or agent) enough context to
 resume work on this repository without reading every file.
@@ -125,7 +125,11 @@ example with code for both transport types. The checklist:
 Actions are pinned to commit SHAs (not tags) for supply-chain safety.
 
 Dependabot is configured for weekly uv and github-actions updates
-(`.github/dependabot.yml`). Minor/patch updates are grouped.
+(`.github/dependabot.yml`). Minor/patch updates are grouped and auto-merge
+after CI passes (major version bumps like starlette 0.x→1.x still need
+manual review). PR queue is capped (uv: 5, github-actions: 3) to prevent
+pileup. Auto-merge requires the repo setting `Allow auto-merge` to be
+enabled (it is).
 
 ## Smoke Tests
 
@@ -146,13 +150,22 @@ Smoke results are written to `.smoke-results/` (gitignored).
   test clients. This is a cosmetic warning in FastAPI's testclient import and
   does not affect functionality. Non-blocking.
 
+## Signing
+
+- Commits are GPG-signed with key `81F5BD471273814D`
+  (full fingerprint `70D493F74B02B642FCB438D481F5BD471273814D`).
+- Verified email on GitHub: `shaun@solidrust.net` (added 2026-07-08).
+- GPG public key is registered on the GitHub account (added 2026-07-08).
+  Commits show as "Verified" on GitHub.
+
 ## How To Resume Work
 
 1. Read this file and `PLAN.md`.
 2. Check `git log --oneline -20` for recent activity.
 3. Check open PRs: `gh pr list --state open`.
 4. Check security alerts: `gh api repos/suparious/claude-code-proxy/dependabot/alerts --paginate -q '.[] | select(.state=="open") | .dependency.package.name'`.
-5. Run `make ci` to confirm the baseline is green.
+   (Currently zero open — last sweep on 2026-07-07 closed all 21.)
+5. Run `make ci` to confirm the baseline is green (858 tests, ~5s).
 6. Check `BACKLOG.md` for prioritized work items.
 7. Check `ROADMAP.md` for directional context.
 8. For upstream mining, follow `UPSTREAM_AUDIT_PLAN.md`.
