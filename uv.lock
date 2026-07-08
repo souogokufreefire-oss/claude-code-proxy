@@ -196,7 +196,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.1" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.136.1" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.139.0" },
     { name = "httpx", extras = ["socks"], specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "openai", specifier = ">=2.34.0" },
