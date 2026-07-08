@@ -8,6 +8,9 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
+    # Auto-merge minor/patch dependency updates after CI passes.
+    # Major version bumps (e.g. starlette 0.x -> 1.x) still need manual review.
+    # Requires repo Settings -> General -> Allow auto-merge to be enabled.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
