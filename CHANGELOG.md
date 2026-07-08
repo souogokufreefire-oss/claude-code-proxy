@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Kimi / Moonshot provider using OpenAI-compatible chat completions at
+  `https://api.moonshot.ai/v1` with bearer authentication. Reasoning history is
+  replayed as `reasoning_content` for tool-call turns when thinking is enabled.
+  Adapted from upstream PR #335.
+
 ## 2.1.0 - 2026-04-30
 
 Provider expansion release for hosted and local upstream backends.
