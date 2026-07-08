@@ -30,6 +30,7 @@ from providers.error_mapping import (
     user_visible_message_for_mapped_provider_error,
 )
 from providers.key_pool import ApiKeyPool
+from providers.output_cap import clamp_output_tokens, parse_output_token_cap
 from providers.rate_limit import GlobalRateLimiter
 
 
@@ -73,6 +74,9 @@ class OpenAIChatTransport(BaseProvider):
         self._key_pool = ApiKeyPool(config.api_keys, usage_limit=config.key_usage_limit)
         self._api_key = self._key_pool.active_key or api_key
         self._base_url = base_url.rstrip("/")
+        # Learned per-model output-token caps from upstream 400 rejections, so
+        # later requests clamp proactively instead of paying the 400 each time.
+        self._model_output_caps: dict[str, int] = {}
         self._global_rate_limiter = GlobalRateLimiter.get_scoped_instance(
             provider_name.lower(),
             rate_limit=config.rate_limit,
@@ -163,13 +167,16 @@ class OpenAIChatTransport(BaseProvider):
         if self._key_pool.has_fallbacks():
             return await self._create_stream_with_key_fallback(body)
 
+        body = self._apply_learned_output_cap(body)
         try:
             stream = await self._global_rate_limiter.execute_with_retry(
                 self._client.chat.completions.create, **body, stream=True
             )
             return stream, body
         except Exception as error:
-            retry_body = self._get_retry_request_body(error, body)
+            retry_body = self._retry_body_for_output_cap(error, body)
+            if retry_body is None:
+                retry_body = self._get_retry_request_body(error, body)
             if retry_body is None:
                 raise
 
@@ -180,6 +187,7 @@ class OpenAIChatTransport(BaseProvider):
 
     async def _create_stream_with_key_fallback(self, body: dict) -> tuple[Any, dict]:
         last_error: Exception | None = None
+        body = self._apply_learned_output_cap(body)
         while True:
             try:
                 stream = await self._global_rate_limiter.execute_with_retry(
@@ -191,7 +199,9 @@ class OpenAIChatTransport(BaseProvider):
                 self._record_api_key_success()
                 return stream, body
             except Exception as error:
-                retry_body = self._get_retry_request_body(error, body)
+                retry_body = self._retry_body_for_output_cap(error, body)
+                if retry_body is None:
+                    retry_body = self._get_retry_request_body(error, body)
                 if retry_body is not None:
                     try:
                         stream = await self._global_rate_limiter.execute_with_retry(
@@ -210,6 +220,41 @@ class OpenAIChatTransport(BaseProvider):
                 last_error = error
                 if not self._rotate_api_key_after_failure():
                     raise last_error from error
+
+    def _apply_learned_output_cap(self, body: dict) -> dict:
+        """Clamp output tokens to a previously learned cap for this model."""
+        model = body.get("model")
+        if not isinstance(model, str):
+            return body
+        cap = self._model_output_caps.get(model)
+        if cap is None:
+            return body
+        clamped = clamp_output_tokens(body, cap)
+        return clamped if clamped is not None else body
+
+    def _retry_body_for_output_cap(self, error: Exception, body: dict) -> dict | None:
+        """Learn an upstream output-token cap from a 400 and clamp for one retry.
+
+        Stores the learned cap per model in ``self._model_output_caps`` so
+        later requests clamp proactively instead of paying the 400 each time.
+        """
+        cap = parse_output_token_cap(error)
+        if cap is None:
+            return None
+        model = body.get("model")
+        if isinstance(model, str):
+            previous = self._model_output_caps.get(model)
+            cap = cap if previous is None else min(previous, cap)
+            self._model_output_caps[model] = cap
+        clamped = clamp_output_tokens(body, cap)
+        if clamped is None:
+            return None
+        logger.warning(
+            "{}_STREAM: clamping output tokens to {} after upstream cap rejection",
+            self._provider_name,
+            cap,
+        )
+        return clamped
 
     def _emit_tool_arg_delta(
         self, sse: SSEBuilder, tc_index: int, args: str
