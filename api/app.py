@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="Claude Code Proxy",
-        version="2.1.0",
+        version="2.2.0",
         lifespan=lifespan,
     )
 
