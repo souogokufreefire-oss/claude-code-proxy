@@ -12,7 +12,7 @@ CLI, VS Code, and JetBrains ACP traffic to upstream model providers. It keeps
 Claude Code's client-side protocol stable while letting the operator choose
 where inference actually happens.
 
-- **Version:** 2.1.0
+- **Version:** 2.2.0
 - **Python:** 3.14+ (enforced)
 - **Package manager:** uv (astral)
 - **Framework:** FastAPI + httpx + openai SDK
@@ -30,7 +30,7 @@ uv sync --locked --group dev    # install deps
 uv run ruff format              # format
 uv run ruff check               # lint
 uv run ty check                 # type check
-uv run pytest                   # tests (858 tests, ~7s)
+uv run pytest                   # tests (878 tests, ~7s)
 ```
 
 Or use the Makefile: `make format`, `make lint`, `make ty`, `make test`,
@@ -49,7 +49,7 @@ api/             HTTP routes, request orchestration, model routing, auth, server
 providers/       Upstream model adapters (14 providers, 2 transport archetypes)
 cli/             Installed package entrypoints (claude-code-proxy, ccp-init)
 smoke/           Opt-in live product smoke tests (not run in CI by default)
-tests/           Deterministic unit + contract tests (858 tests)
+tests/           Deterministic unit + contract tests (878 tests)
 ```
 
 ### Dependency Direction
@@ -165,7 +165,7 @@ Smoke results are written to `.smoke-results/` (gitignored).
 3. Check open PRs: `gh pr list --state open`.
 4. Check security alerts: `gh api repos/suparious/claude-code-proxy/dependabot/alerts --paginate -q '.[] | select(.state=="open") | .dependency.package.name'`.
    (Currently zero open — last sweep on 2026-07-07 closed all 21.)
-5. Run `make ci` to confirm the baseline is green (858 tests, ~5s).
+5. Run `make ci` to confirm the baseline is green (878 tests, ~5s).
 6. Check `BACKLOG.md` for prioritized work items.
 7. Check `ROADMAP.md` for directional context.
 8. For upstream mining, follow `UPSTREAM_AUDIT_PLAN.md`.

@@ -225,4 +225,51 @@ Refreshed upstream PRs (30) and issues (50) since last audit (2026-04-29).
 - PR #395: broad provider architecture refactor (closed, too invasive)
 - PR #393: custom OpenAI-compatible providers (closed, likely superseded)
 - PR #321: auth token fallback (closed, design needs local review)
-- Issue noise: majority are user support / config issues, not actionable
+- [x] Issue noise: majority are user support / config issues, not actionable
+
+### Weekly Audit - 2026-07-08
+
+Refreshed upstream PRs (100) and issues (50) since last audit (2026-05-09).
+Upstream is now at 3.4.x and has heavily refactored into a transport-package
+layout (`providers/transports/anthropic_messages/`, `providers/transports/openai_chat/`)
+and an admin UI / messaging platform; most of the recent activity is
+out-of-scope for the proxy-only fork.
+
+### Applied
+
+- [x] PR #997: `fix(nim): strip chat_template_kwargs alongside chat_template on retry` — Mistral tokenizer 400 (issue #993). Ported to `providers/nvidia_nim/request.py`; `_strip_chat_template_field` now strips both `chat_template` and `chat_template_kwargs` so the retry body matches what the upstream accepted.
+- [x] PR #991: `fix(openai-compat): recover from upstream max_tokens cap rejections` — Groq / NIM 400 when `max_tokens` exceeds the model cap (issue #955). Ported to a new `providers/output_cap.py` module (pure helpers) plus a `_model_output_caps` cache and `_apply_learned_output_cap` / `_retry_body_for_output_cap` hooks in `OpenAIChatTransport`. Inherited by all 5 OpenAI-chat providers (NIM, Groq, Cerebras, Together, Kimi).
+
+### Already Applied (no-op)
+
+- [x] PR #1003: `Retry pre-stream provider transport failures` — connection / timeout errors are already retried by `GlobalRateLimiter._is_retryable_error` (`providers/rate_limit.py:308-323`).
+- [x] PR #968: `Fix NIM reasoning budget fallback` — already present in `providers/nvidia_nim/client.py:_get_retry_request_body` since 2.1.0.
+
+### Adapt / Backlog (architecture change needed)
+
+- [x] PR #1002: `Fix OpenAI chat reasoning and tool history replay` — large `core/anthropic/conversion.py` refactor (238+ line ledger rewrite). Our conversion has different invariants; needs local design review before porting.
+- [x] PR #979: `Switch LM Studio to OpenAI chat transport` — major transport swap. We ship a working Anthropic LM Studio integration; the upstream refactor solves a different problem class (local tool-call text leaks) and would require a parallel regression suite.
+- [x] PR #977: `Fix stream:false requests returning malformed response` — touches `api/handlers/messages.py` and `core/anthropic/sse_aggregation.py`, both of which don't exist in our flat layout. The bug class may exist here too; needs targeted repro.
+- [x] PR #937: `Fix DeepSeek cache usage accounting` — addresses upstream issue #904 (10x cost increase when DeepSeek disk-cache tokens are dropped). Real problem for DeepSeek users; the port is non-trivial (large `providers/deepseek/compat.py` refactor).
+- [x] PR #944: `Add Mistral reasoning fallback` — we don't have Mistral as a provider; backlog.
+
+### Backlog (new providers)
+
+- PR #980 (MiniMax), #984 (Vercel AI Gateway), #985 (Hugging Face inference), #986 (Cohere), #989 (GitHub Models), #990 (SambaNova Cloud), #933 (Cloudflare), #971 (Cloudflare Workers AI transport fix), #966 (Kiro / CodeWhisperer). Already in `BACKLOG.md` provider-expansion section.
+
+### Skip (out of scope)
+
+- Messaging / Telegram / admin UI: PRs #1017, #1015, #996, #995, #988, #965, #858, #852, #836.
+- Upstream architecture refactors that don't touch proxy core: #923, #925, #926, #927, #929, #930, #931, #932, #845, #847, #851, #861, #883, #878, #926.
+- OpenAI Responses / Responses stream: #860, #932.
+- Dependabot / lock refresh: #846, #876, #919, #969, #972.
+- Install scripts / Windows / Linux / sudo / PATH: #836, #887, #888, #892, #913, #915, #942.
+- Docs-only: #1017 (UI description).
+- Mixed fixes touching only the bot/admin side.
+- Closed feature PRs (#870-class) that were superseded by their open successors.
+
+### Open Issues Worth Watching
+
+- #904: DeepSeek disk-cache tokens dropped on Anthropic endpoint (10x cost). Closed by PR #937 upstream; we still need to port.
+- #955: max_tokens exceeds cap (closed by PR #991).
+- #993: NIM Mistral tokenizer (closed by PR #997).

@@ -43,8 +43,10 @@ Sourced from `UPSTREAM_AUDIT_PLAN.md` backlog section and community demand:
 
 Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
+- [ ] **P2** PR #1002: OpenAI chat reasoning and tool history replay (large conversion.py refactor)
+- [ ] **P2** PR #937: DeepSeek cache usage accounting (issue #904: 10x cost when disk-cache tokens dropped)
+- [ ] **P2** PR #977: stream:false malformed response fix (file layout mismatch, needs targeted repro)
 - [ ] **P2** PR #318: multi-feature (MAX_MESSAGES, CONTEXT_MAX_TOKENS, NIM_PARALLEL_TOOL_CALLS, SSE fix, Claude 4 IDs, tool schema hint) — too broad, needs splitting
-- [ ] **P2** PR #317: perf hot-path optimizations for free-tier providers
 - [ ] **P3** PR #341: API key pooling — already in design review, see UPSTREAM_AUDIT_PLAN.md
 - [ ] **P3** PR #399: model-cache persistence (closed, may be superseded by #318)
 
@@ -84,6 +86,7 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Completed
 
+- [x] 2026-07-08: Upstream audit (since 2026-05-09) — applied PRs #997, #991
 - [x] 2026-07-08: Markdown foundation audit and refresh
 - [x] 2026-07-08: Enabled dependabot auto-merge (repo setting + config documentation)
 - [x] 2026-07-07: Patched 21 security advisories, consolidated 6 dependabot PRs

@@ -17,7 +17,7 @@ Per-tier model routing (Opus/Sonnet/Haiku/fallback), streaming, tool use,
 thinking/reasoning blocks, image input conversion, fallback key rotation,
 local request optimizations, and optional web server tools.
 
-CI enforces formatting, linting, type checking, and 858 tests with zero
+CI enforces formatting, linting, type checking, and 878 tests with zero
 type-suppression tolerance.
 
 ## Near-Term (Next Release)
