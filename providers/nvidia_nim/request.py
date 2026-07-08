@@ -69,8 +69,19 @@ def _strip_reasoning_budget_fields(extra_body: dict[str, Any]) -> bool:
     return removed
 
 
-def _strip_chat_template_field(extra_body: dict[str, Any]) -> bool:
-    return extra_body.pop("chat_template", None) is not None
+def _strip_chat_template_fields(extra_body: dict[str, Any]) -> bool:
+    """Strip NIM chat-template control fields from ``extra_body``.
+
+    Removes both ``chat_template`` and ``chat_template_kwargs``. Some NIM
+    model families (e.g. Mistral tokenizers, issue #993) reject requests that
+    carry ``chat_template`` at all, so the matching ``chat_template_kwargs``
+    block must be dropped in the same retry. Returns ``True`` if either field
+    was present and removed.
+    """
+    removed = extra_body.pop("chat_template", None) is not None
+    if extra_body.pop("chat_template_kwargs", None) is not None:
+        removed = True
+    return removed
 
 
 def _strip_message_reasoning_content(body: dict[str, Any]) -> bool:
@@ -170,8 +181,13 @@ def clone_body_without_reasoning_budget(body: dict[str, Any]) -> dict[str, Any] 
 
 
 def clone_body_without_chat_template(body: dict[str, Any]) -> dict[str, Any] | None:
-    """Clone a request body and strip only chat_template."""
-    return _clone_strip_extra_body(body, _strip_chat_template_field)
+    """Clone a request body and strip NIM chat-template control fields.
+
+    Strips both ``chat_template`` and ``chat_template_kwargs`` so the retry
+    body matches what the upstream accepted. Returns ``None`` when neither
+    field is present.
+    """
+    return _clone_strip_extra_body(body, _strip_chat_template_fields)
 
 
 def clone_body_without_reasoning_content(body: dict[str, Any]) -> dict[str, Any] | None:

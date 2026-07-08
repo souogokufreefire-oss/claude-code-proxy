@@ -130,13 +130,43 @@ class TestBuildRequestBody:
 
         assert cloned is not None
         assert "chat_template" not in cloned["extra_body"]
-        assert cloned["extra_body"]["chat_template_kwargs"] == {
+        # Both chat-template control fields must be stripped together so the
+        # retry body matches what the upstream accepted. See upstream PR #997
+        # (issue #993: Mistral tokenizer rejects chat_template entirely).
+        assert "chat_template_kwargs" not in cloned["extra_body"]
+        assert cloned["extra_body"]["ignore_eos"] is False
+        # The original body is untouched.
+        assert body["extra_body"]["chat_template"] == "custom_template"
+        assert body["extra_body"]["chat_template_kwargs"] == {
             "thinking": True,
             "enable_thinking": True,
             "reasoning_budget": 100,
         }
+
+    def test_clone_body_without_chat_template_kwargs_only(self):
+        body = {
+            "model": "test",
+            "extra_body": {
+                "chat_template_kwargs": {
+                    "thinking": True,
+                    "enable_thinking": True,
+                    "reasoning_budget": 100,
+                },
+                "ignore_eos": False,
+            },
+        }
+
+        cloned = clone_body_without_chat_template(body)
+
+        assert cloned is not None
+        assert "chat_template" not in cloned["extra_body"]
+        assert "chat_template_kwargs" not in cloned["extra_body"]
         assert cloned["extra_body"]["ignore_eos"] is False
-        assert body["extra_body"]["chat_template"] == "custom_template"
+
+    def test_clone_body_without_chat_template_returns_none_when_unchanged(self):
+        body = {"model": "test", "extra_body": {"ignore_eos": False}}
+
+        assert clone_body_without_chat_template(body) is None
 
     def test_no_chat_template_kwargs_when_thinking_disabled(self):
         req = MagicMock()

@@ -446,12 +446,10 @@ async def test_stream_response_retries_without_chat_template(provider_config):
     }
     assert "reasoning_budget" not in first_extra
 
+    # Both chat-template control fields must be stripped together so the retry
+    # body matches what the upstream accepted. See upstream PR #997.
     assert "chat_template" not in second_extra
-    assert second_extra["chat_template_kwargs"] == {
-        "thinking": True,
-        "enable_thinking": True,
-        "reasoning_budget": 100,
-    }
+    assert "chat_template_kwargs" not in second_extra
     assert "reasoning_budget" not in second_extra
 
     event_text = "".join(events)
