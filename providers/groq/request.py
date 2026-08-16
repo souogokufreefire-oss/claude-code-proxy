@@ -11,6 +11,13 @@ from core.anthropic import (
 )
 from core.anthropic.conversion import OpenAIConversionError
 from providers.exceptions import InvalidRequestError
+from providers.output_cap import clamp_output_tokens
+
+
+# Model-specific output limits enforced by Groq.
+GROQ_MODEL_OUTPUT_CAPS: dict[str, int] = {
+    "qwen/qwen3.6-27b": 16384,
+}
 
 
 def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
@@ -32,6 +39,20 @@ def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
 
     # Groq accepts both max_tokens and max_completion_tokens; keep max_tokens
     # for compatibility with the OpenAI Python SDK.
+
+    # Clamp model-specific output limits before sending upstream.
+    model_name = str(body.get("model", "")).strip().lower()
+    model_cap = GROQ_MODEL_OUTPUT_CAPS.get(model_name)
+
+    if model_cap is not None:
+        clamped = clamp_output_tokens(body, model_cap)
+        if clamped is not None:
+            body = clamped
+            logger.debug(
+                "GROQ_REQUEST: clamped max output tokens model={} cap={}",
+                model_name,
+                model_cap,
+            )
 
     # Pass through optional parameters
     set_if_not_none(body, "temperature", getattr(request_data, "temperature", None))

@@ -178,6 +178,7 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         credential_list_attr="groq_api_keys",
         key_usage_limit_attr="groq_key_usage_limit",
         default_base_url=GROQ_DEFAULT_BASE,
+        base_url_attr="groq_base_url",
         proxy_attr="groq_proxy",
         capabilities=("chat", "streaming", "tools", "rate_limit"),
     ),

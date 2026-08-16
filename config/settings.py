@@ -205,6 +205,9 @@ class Settings(BaseSettings):
     groq_key_usage_limit: int = Field(
         default=0, validation_alias="GROQ_KEY_USAGE_LIMIT"
     )
+    groq_base_url: str = Field(
+        default="", validation_alias="GROQ_BASE_URL"
+    )
     groq_proxy: str = Field(default="", validation_alias="GROQ_PROXY")
 
     # ==================== Cerebras Config ====================
