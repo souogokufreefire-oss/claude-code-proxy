@@ -107,3 +107,17 @@ class ServiceUnavailableError(ProviderError):
             error_type="api_error",
             raw_error=raw_error,
         )
+
+
+
+class ProviderFailoverSignal(Exception):
+    """Internal signal requesting a cross-provider failover.
+
+    This is intentionally not a ProviderError because the service layer must
+    intercept it before the transport turns it into a client-facing SSE error.
+    """
+
+    def __init__(self, provider_id: str, cause: Exception) -> None:
+        super().__init__(str(cause))
+        self.provider_id = provider_id
+        self.cause = cause

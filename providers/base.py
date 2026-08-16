@@ -7,6 +7,14 @@ from typing import Any
 from pydantic import BaseModel
 
 from config.constants import HTTP_CONNECT_TIMEOUT_DEFAULT
+from providers import failover as _failover
+
+begin_primary_failover = _failover.begin_primary_failover
+end_primary_failover = _failover.end_primary_failover
+error_status_code = _failover.error_status_code
+fallback_model_for = _failover.fallback_model_for
+fallback_provider_for = _failover.fallback_provider_for
+
 
 
 class ProviderConfig(BaseModel):

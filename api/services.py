@@ -15,8 +15,19 @@ from loguru import logger
 from config.settings import Settings
 from core.anthropic import get_token_count, get_user_facing_error_message
 from core.anthropic.sse import ANTHROPIC_SSE_RESPONSE_HEADERS
-from providers.base import BaseProvider
-from providers.exceptions import InvalidRequestError, ProviderError
+from providers.base import (
+    BaseProvider,
+    begin_primary_failover,
+    end_primary_failover,
+    error_status_code,
+    fallback_model_for,
+    fallback_provider_for,
+)
+from providers.exceptions import (
+    InvalidRequestError,
+    ProviderError,
+    ProviderFailoverSignal,
+)
 
 from .model_router import ModelRouter
 from .models.anthropic import MessagesRequest, TokenCountRequest
@@ -238,9 +249,18 @@ class ClaudeProxyService:
             input_tokens = self._token_counter(
                 routed.request.messages, routed.request.system, routed.request.tools
             )
+            primary_stream = provider.stream_response(
+                routed.request,
+                input_tokens=input_tokens,
+                request_id=request_id,
+                thinking_enabled=routed.resolved.thinking_enabled,
+            )
+
             return anthropic_sse_streaming_response(
-                provider.stream_response(
-                    routed.request,
+                self._stream_with_provider_failover(
+                    primary_stream=primary_stream,
+                    provider_id=routed.resolved.provider_id,
+                    request=routed.request,
                     input_tokens=input_tokens,
                     request_id=request_id,
                     thinking_enabled=routed.resolved.thinking_enabled,
@@ -257,6 +277,78 @@ class ClaudeProxyService:
                 status_code=_http_status_for_unexpected_service_exception(e),
                 detail=get_user_facing_error_message(e),
             ) from e
+
+    async def _stream_with_provider_failover(
+        self,
+        *,
+        primary_stream: AsyncIterator[str],
+        provider_id: str,
+        request: MessagesRequest,
+        input_tokens: int,
+        request_id: str,
+        thinking_enabled: bool,
+    ) -> AsyncIterator[str]:
+        """Stream from the primary provider and fail over before useful SSE is released."""
+
+        first_event: str | None = None
+        signal: ProviderFailoverSignal | None = None
+        token = begin_primary_failover(provider_id)
+
+        try:
+            try:
+                async for event in primary_stream:
+                    # Hold only the very first SSE event. Both transports emit
+                    # message_start before the upstream result is known.
+                    # If a failover signal occurs, this event is discarded.
+                    if first_event is None:
+                        first_event = event
+                        continue
+
+                    yield first_event
+                    first_event = None
+                    yield event
+
+                if first_event is not None:
+                    yield first_event
+
+            except ProviderFailoverSignal as exc:
+                signal = exc
+        finally:
+            end_primary_failover(token)
+
+        if signal is None:
+            return
+
+        secondary_provider_id = fallback_provider_for(provider_id)
+        secondary_model = fallback_model_for(provider_id)
+
+        if secondary_provider_id is None or secondary_model is None:
+            raise signal.cause
+
+        logger.warning(
+            "PROVIDER_FAILOVER: primary={} secondary={} status={} request_id={}",
+            provider_id,
+            secondary_provider_id,
+            error_status_code(signal.cause),
+            request_id,
+        )
+
+        secondary_provider = self._provider_getter(secondary_provider_id)
+        secondary_request = request.model_copy(deep=True)
+        secondary_request.model = secondary_model
+
+        secondary_provider.preflight_stream(
+            secondary_request,
+            thinking_enabled=thinking_enabled,
+        )
+
+        async for event in secondary_provider.stream_response(
+            secondary_request,
+            input_tokens=input_tokens,
+            request_id=request_id,
+            thinking_enabled=thinking_enabled,
+        ):
+            yield event
 
     def count_tokens(self, request_data: TokenCountRequest) -> TokenCountResponse:
         """Count tokens for a request after applying configured model routing."""

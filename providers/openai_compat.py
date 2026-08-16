@@ -29,6 +29,8 @@ from providers.error_mapping import (
     map_error,
     user_visible_message_for_mapped_provider_error,
 )
+from providers.exceptions import ProviderFailoverSignal
+from providers.failover import is_failover_eligible_error, should_signal_failover
 from providers.key_pool import ApiKeyPool
 from providers.output_cap import clamp_output_tokens, parse_output_token_cap
 from providers.rate_limit import GlobalRateLimiter
@@ -168,9 +170,17 @@ class OpenAIChatTransport(BaseProvider):
             return await self._create_stream_with_key_fallback(body)
 
         body = self._apply_learned_output_cap(body)
+        retry_kwargs = (
+            {"max_retries": 0}
+            if should_signal_failover(self._provider_name)
+            else {}
+        )
         try:
             stream = await self._global_rate_limiter.execute_with_retry(
-                self._client.chat.completions.create, **body, stream=True
+                self._client.chat.completions.create,
+                **body,
+                stream=True,
+                **retry_kwargs,
             )
             return stream, body
         except Exception as error:
@@ -181,7 +191,10 @@ class OpenAIChatTransport(BaseProvider):
                 raise
 
             stream = await self._global_rate_limiter.execute_with_retry(
-                self._client.chat.completions.create, **retry_body, stream=True
+                self._client.chat.completions.create,
+                **retry_body,
+                stream=True,
+                **retry_kwargs,
             )
             return stream, retry_body
 
@@ -373,11 +386,14 @@ class OpenAIChatTransport(BaseProvider):
         heuristic_parser = HeuristicToolParser()
         finish_reason = None
         usage_info = None
+        upstream_started = False
 
         async with self._global_rate_limiter.concurrency_slot():
             try:
                 stream, body = await self._create_stream(body)
                 async for chunk in stream:
+                    upstream_started = True
+
                     if getattr(chunk, "usage", None):
                         usage_info = chunk.usage
 
@@ -452,6 +468,13 @@ class OpenAIChatTransport(BaseProvider):
             except asyncio.CancelledError, GeneratorExit:
                 raise
             except Exception as e:
+                if (
+                    not upstream_started
+                    and should_signal_failover(self._provider_name)
+                    and is_failover_eligible_error(e)
+                ):
+                    raise ProviderFailoverSignal(self._provider_name, e) from e
+
                 self._log_stream_transport_error(tag, req_tag, e)
                 mapped_e = map_error(e, rate_limiter=self._global_rate_limiter)
                 base_message = user_visible_message_for_mapped_provider_error(

@@ -26,6 +26,11 @@ from providers.error_mapping import (
     map_error,
     user_visible_message_for_mapped_provider_error,
 )
+from providers.exceptions import ProviderFailoverSignal
+from providers.failover import (
+    is_failover_eligible_error,
+    should_signal_failover,
+)
 from providers.key_pool import ApiKeyPool
 from providers.rate_limit import GlobalRateLimiter
 
@@ -336,8 +341,14 @@ class AnthropicMessagesTransport(BaseProvider):
                                 await send_response.aclose()
                     return send_response
 
+                retry_kwargs = (
+                    {"max_retries": 0}
+                    if should_signal_failover(self._provider_name)
+                    else {}
+                )
                 response = await self._global_rate_limiter.execute_with_retry(
-                    _validated_stream_send
+                    _validated_stream_send,
+                    **retry_kwargs,
                 )
                 self._key_pool.mark_used(self._api_key)
                 if next_key := self._key_pool.rotate_if_exhausted(self._api_key):
@@ -353,6 +364,13 @@ class AnthropicMessagesTransport(BaseProvider):
                     yield chunk
 
             except Exception as error:
+                if (
+                    not sent_any_event
+                    and should_signal_failover(self._provider_name)
+                    and is_failover_eligible_error(error)
+                ):
+                    raise ProviderFailoverSignal(self._provider_name, error) from error
+
                 if not isinstance(error, httpx.HTTPStatusError):
                     self._log_stream_transport_error(tag, req_tag, error)
                 error_message = self._get_error_message(error, request_id)
