@@ -28,7 +28,7 @@ def test_open_router_falls_back_to_groq():
 
 def test_groq_falls_back_to_open_router():
     assert fallback_provider_for("groq") == "open_router"
-    assert fallback_model_for("groq") == "open_router/openrouter/free"
+    assert fallback_model_for("groq") == "openrouter/free"
 
 
 @pytest.mark.parametrize("status", [429])

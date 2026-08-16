@@ -19,7 +19,7 @@ FALLBACK_PROVIDER_BY_PROVIDER: dict[str, str] = {
 
 FALLBACK_MODEL_BY_PROVIDER: dict[str, str] = {
     "open_router": "groq/openai/gpt-oss-120b",
-    "groq": "open_router/openrouter/free",
+    "groq": "openrouter/free",
 }
 
 
