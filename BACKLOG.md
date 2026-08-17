@@ -43,7 +43,7 @@ Sourced from `UPSTREAM_AUDIT_PLAN.md` backlog section and community demand:
 
 Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
-- [ ] **P2** PR #1002: OpenAI chat reasoning and tool history replay (large conversion.py refactor)
+- [x] **(DONE 2026-08-17)** PR #1002: OpenAI chat reasoning and tool history replay (commit 0723120)
 - [ ] **P2** PR #937: DeepSeek cache usage accounting (issue #904: 10x cost when disk-cache tokens dropped)
 - [ ] **P2** PR #977: stream:false malformed response fix (file layout mismatch, needs targeted repro)
 - [ ] **P2** PR #318: multi-feature (MAX_MESSAGES, CONTEXT_MAX_TOKENS, NIM_PARALLEL_TOOL_CALLS, SSE fix, Claude 4 IDs, tool schema hint) — too broad, needs splitting
@@ -87,6 +87,7 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Completed
 
+- [x] 2026-08-17: P2 OpenAI chat reasoning and tool history replay — upstream PR #1002 port (commit 0723120)
 - [x] 2026-08-17: P1 Thinking/Reasoning smoke tests — 14-provider smoke matrix, thinking emission and reasoning_content round-trip scenarios (commit ef1cf5e)
 - [x] 2026-08-17: Context Window Manager — Groq payload trimming (commits 7f16da1, 50853ad); external Groq TPM 12k limitation registered, not blocking
 - [x] 2026-07-08: Upstream audit (since 2026-05-09) — applied PRs #997, #991

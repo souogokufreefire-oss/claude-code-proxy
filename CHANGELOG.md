@@ -6,6 +6,17 @@ Context Window Manager release.
 
 ### Added
 
+- OpenAI chat reasoning and tool history replay, ported from upstream PR #1002
+  (commit 0723120): assistant `reasoning_content` — including explicit empty
+  strings — is preserved and replayed across turns, and tool history is
+  replayed with `tool_use` IDs and ordering intact. User/assistant text after a
+  `tool_use` is buffered until the matching `tool_result` sequence completes
+  (nested and multi-tool turns included), so every OpenAI chat payload keeps
+  valid `tool_calls` → `tool` adjacency. Streaming treats `reasoning_content=""`
+  as explicit state: it starts the thinking block without emitting spurious
+  deltas. Groq never receives a `reasoning_content` key. The 9 native
+  Anthropic-transport providers (DeepSeek, OpenRouter, LM Studio, llama.cpp,
+  Ollama, FriendliAI, Fireworks, vLLM, CLIProxyAPI) are unaffected.
 - Thinking/reasoning smoke coverage for all 14 providers (commit ef1cf5e):
   smoke model defaults for FriendliAI, Fireworks, vLLM, CLIProxyAPI, Groq,
   Cerebras, Together, and Kimi, with per-provider `FCC_SMOKE_MODEL_*`
