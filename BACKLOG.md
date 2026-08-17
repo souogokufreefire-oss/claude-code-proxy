@@ -1,6 +1,6 @@
 # Backlog
 
-> Last updated: 2026-07-08
+> Last updated: 2026-08-17
 
 Tracked work items, ideas, and deferred work. Prioritized within each section.
 Items move to `CHANGELOG.md` when shipped.
@@ -59,6 +59,7 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Context Management
 
+- [x] **(DONE 2026-08-17)** Context Window Manager — Groq payload trimming (`CONTEXT_*` settings, `core/context/context_manager.py`, service-layer integration; audit-approved)
 - [ ] **P2** Context usage visibility — surface token counts in response metadata
 - [ ] **P2** Graceful context overflow handling (degrade instead of 400)
 - [ ] **P3** Optional compaction for long Claude Code sessions
@@ -86,6 +87,7 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Completed
 
+- [x] 2026-08-17: Context Window Manager — Groq payload trimming (commits 7f16da1, 50853ad); external Groq TPM 12k limitation registered, not blocking
 - [x] 2026-07-08: Upstream audit (since 2026-05-09) — applied PRs #997, #991
 - [x] 2026-07-08: Markdown foundation audit and refresh
 - [x] 2026-07-08: Enabled dependabot auto-merge (repo setting + config documentation)

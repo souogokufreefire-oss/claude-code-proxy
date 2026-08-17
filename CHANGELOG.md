@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+Context Window Manager release.
+
+### Added
+
+- Context Window Manager (`CONTEXT_*` settings) that trims oversized Groq
+  payloads before dispatch: oversized conversations are reduced while
+  preserving the system prompt, the first user message, the most recent
+  `CONTEXT_MIN_RECENT_MESSAGES` messages, and complete `tool_use` /
+  `tool_result` cycles. Implemented as a neutral `core/context/context_manager.py`
+  consumed by the service layer, with a budget of
+  `CONTEXT_MAX_TOKENS - CONTEXT_RESERVED_OUTPUT_TOKENS`. The trimmed request is
+  used for both the primary provider and the failover attempt. Groq-only by
+  design; other providers are untouched.
+- `CONTEXT_ENABLED`, `CONTEXT_MAX_TOKENS`, `CONTEXT_RESERVED_OUTPUT_TOKENS`,
+  `CONTEXT_MIN_RECENT_MESSAGES` settings, documented in `.env.example`.
+- Groq request builder diagnostics: single `GROQ_PAYLOAD_SIZE` warning with
+  byte, tool, and message counts; `GROQ_TOOLS_TRIM` keeps the first 8 tools;
+  `reasoning_content` keys are dropped (unsupported by Groq).
+- Unit tests (`tests/core/context/`) and service-level integration tests
+  (`tests/api/test_context_manager_integration.py`) — 917 tests total.
+
+### Known Limitation
+
+- The Groq account used during validation is on an `on_demand` tier with a
+  TPM limit of 12,000 tokens/min. A real Claude Code request (system prompt
+  alone ≈14,700 tokens plus ~1,800 tokens of tools) exceeds that limit before
+  any conversation messages are added, so Groq still answers with HTTP 413 and
+  the proxy fails over to OpenRouter. This is an account/tier limitation, not
+  a code defect; it predates the Context Window Manager and is unaffected by
+  it.
+
 ## 2.2.0 - 2026-07-08
 
 Kimi provider, upstream compatibility and security hardening release.
