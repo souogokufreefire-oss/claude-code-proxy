@@ -6,6 +6,17 @@ Context Window Manager release.
 
 ### Added
 
+- Thinking/reasoning smoke coverage for all 14 providers (commit ef1cf5e):
+  smoke model defaults for FriendliAI, Fireworks, vLLM, CLIProxyAPI, Groq,
+  Cerebras, Together, and Kimi, with per-provider `FCC_SMOKE_MODEL_*`
+  overrides; `has_provider_configuration` covers all 14 providers; new
+  product scenarios `test_provider_thinking_emission_e2e` (adaptive thinking
+  must emit thinking blocks, retried twice, documented skip otherwise) and
+  `test_provider_reasoning_content_roundtrip_e2e` (OpenAI-chat thinking
+  providers must survive reasoning_content replay). Together declared
+  `thinking` in the provider catalog (request builder replays reasoning via
+  `reasoning_content`); Groq remains non-thinking with a documented catalog
+  note (reasoning_content keys are stripped before dispatch).
 - Context Window Manager (`CONTEXT_*` settings) that trims oversized Groq
   payloads before dispatch: oversized conversations are reduced while
   preserving the system prompt, the first user message, the most recent

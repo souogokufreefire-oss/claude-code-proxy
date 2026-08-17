@@ -21,7 +21,7 @@ Priority levels: **P0** (blocking/security), **P1** (next release), **P2** (near
 ## Provider Improvements
 
 - [x] **(DONE 2026-07-07)** Add Kimi provider to CHANGELOG (Unreleased section)
-- [ ] **P1** Verify thinking/reasoning support on all 14 providers via smoke tests
+- [x] **(DONE 2026-08-17)** Verify thinking/reasoning support on all 14 providers via smoke tests (commit ef1cf5e; audit-approved)
 - [ ] **P2** Smoke-test Cerebras `reasoning_effort` and `clear_thinking` extra_body
 - [ ] **P2** Verify vLLM thinking token support (upstream vllm#29915 may be resolved)
 - [ ] **P2** Smoke-test Fireworks AI reasoning block filtering (may need ThinkTagParser)
@@ -87,6 +87,7 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Completed
 
+- [x] 2026-08-17: P1 Thinking/Reasoning smoke tests — 14-provider smoke matrix, thinking emission and reasoning_content round-trip scenarios (commit ef1cf5e)
 - [x] 2026-08-17: Context Window Manager — Groq payload trimming (commits 7f16da1, 50853ad); external Groq TPM 12k limitation registered, not blocking
 - [x] 2026-07-08: Upstream audit (since 2026-05-09) — applied PRs #997, #991
 - [x] 2026-07-08: Markdown foundation audit and refresh
