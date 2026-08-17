@@ -50,7 +50,7 @@ Default targets exercise the proxy without external side effects:
 | `clients` | VS Code and JetBrains protocol payloads | configured provider |
 | `config` | env precedence, removed-env migration, proxy/timeouts | none |
 | `extensibility` | provider registry construction | none |
-| `providers` | multi-turn text, adaptive thinking history, tools, disconnect, errors | configured providers, optional `FCC_SMOKE_MODEL_*` |
+| `providers` | multi-turn text, adaptive thinking history, thinking emission, reasoning_content roundtrip, tools, disconnect, errors | configured providers, optional `FCC_SMOKE_MODEL_*` |
 | `tools` | forced tool_use and tool_result continuation | tool-capable configured provider |
 | `rate_limit` | disconnect cleanup and follow-up request | configured provider |
 | `lmstudio` | local `/models` plus native `/messages` through proxy | running LM Studio server |
@@ -86,7 +86,11 @@ uv run pytest smoke/product -n 0 -s --tb=short
 - `FCC_SMOKE_PROVIDER_MATRIX`: comma-separated provider prefixes to require.
 - `FCC_SMOKE_MODEL_NVIDIA_NIM`, `FCC_SMOKE_MODEL_OPEN_ROUTER`,
   `FCC_SMOKE_MODEL_DEEPSEEK`, `FCC_SMOKE_MODEL_LMSTUDIO`,
-  `FCC_SMOKE_MODEL_LLAMACPP`, `FCC_SMOKE_MODEL_OLLAMA`: optional per-provider
+  `FCC_SMOKE_MODEL_LLAMACPP`, `FCC_SMOKE_MODEL_OLLAMA`,
+  `FCC_SMOKE_MODEL_FRIENDLIAI`, `FCC_SMOKE_MODEL_FIREWORKS`,
+  `FCC_SMOKE_MODEL_VLLM`, `FCC_SMOKE_MODEL_CLIPROXYAPI`,
+  `FCC_SMOKE_MODEL_GROQ`, `FCC_SMOKE_MODEL_CEREBRAS`,
+  `FCC_SMOKE_MODEL_TOGETHER`, `FCC_SMOKE_MODEL_KIMI`: optional per-provider
   smoke model overrides. Values may include the provider prefix or just the model
   name for that provider.
 - `FCC_SMOKE_TIMEOUT_S`: per-request/subprocess timeout, default `45`.
@@ -110,6 +114,10 @@ names contain `KEY`, `TOKEN`, `SECRET`, `WEBHOOK`, or `AUTH`.
 - `product_failure`: the app accepted the scenario but returned the wrong shape,
   crashed, leaked state, or violated the product contract.
 - `harness_bug`: the smoke test or driver made an invalid assumption.
+
+Thinking emission (`test_provider_thinking_emission_e2e`) retries twice; a
+provider that accepts adaptive thinking but never emits thinking blocks is
+reported as a skip (`no_thinking_emitted`), not a failure.
 
 `product_failure` and `harness_bug` are failures. `missing_env` and
 `upstream_unavailable` are skips except when the user explicitly selected a

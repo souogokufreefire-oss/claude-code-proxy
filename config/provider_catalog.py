@@ -180,6 +180,10 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         default_base_url=GROQ_DEFAULT_BASE,
         base_url_attr="groq_base_url",
         proxy_attr="groq_proxy",
+        # NOTE: groq does not declare ``thinking``. The request builder replays
+        # reasoning history only when thinking is enabled, but then strips
+        # ``reasoning_content`` keys before dispatch (Groq does not accept
+        # them); reasoning models emit think tags parsed downstream instead.
         capabilities=("chat", "streaming", "tools", "rate_limit"),
     ),
     "cerebras": ProviderDescriptor(
@@ -204,7 +208,7 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
         key_usage_limit_attr="together_key_usage_limit",
         default_base_url=TOGETHER_DEFAULT_BASE,
         proxy_attr="together_proxy",
-        capabilities=("chat", "streaming", "tools", "rate_limit"),
+        capabilities=("chat", "streaming", "tools", "thinking", "rate_limit"),
     ),
     "kimi": ProviderDescriptor(
         provider_id="kimi",

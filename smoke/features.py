@@ -120,6 +120,8 @@ FEATURE_INVENTORY: tuple[FeatureCoverage, ...] = (
         (),
         (
             "test_provider_adaptive_thinking_history_e2e",
+            "test_provider_thinking_emission_e2e",
+            "test_provider_reasoning_content_roundtrip_e2e",
             "test_provider_reasoning_tool_continuation_e2e",
             "test_claude_cli_adaptive_thinking_e2e",
             "test_per_model_thinking_config_e2e",

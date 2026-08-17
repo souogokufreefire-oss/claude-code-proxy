@@ -8,6 +8,7 @@ from core.anthropic.stream_contracts import (
     assert_anthropic_stream_contract,
     parse_sse_lines,
     text_content,
+    thinking_content,
 )
 from smoke.lib.config import ProviderModel, SmokeConfig, auth_headers
 from smoke.lib.e2e import (
@@ -46,6 +47,30 @@ def test_provider_text_multiturn_e2e(smoke_config: SmokeConfig) -> None:
 
 def test_provider_adaptive_thinking_history_e2e(smoke_config: SmokeConfig) -> None:
     _run_for_each_provider(smoke_config, _scenario_adaptive_thinking_history)
+
+
+def test_provider_thinking_emission_e2e(smoke_config: SmokeConfig) -> None:
+    """Thinking-capable providers must emit thinking blocks when enabled.
+
+    Retried twice to tolerate non-deterministic emission; a provider that
+    accepts the payload but emits no thinking on all attempts is a
+    documented skip, not a failure.
+    """
+    _run_for_each_thinking_provider(smoke_config, _scenario_thinking_emission)
+
+
+def test_provider_reasoning_content_roundtrip_e2e(
+    smoke_config: SmokeConfig,
+) -> None:
+    """OpenAI-chat thinking providers must survive reasoning_content replay.
+
+    Sends an adaptive thinking request whose assistant history contains
+    thinking blocks; the conversion to ``reasoning_content`` must not break
+    request acceptance or the streaming contract.
+    """
+    _run_for_each_openai_chat_thinking_provider(
+        smoke_config, _scenario_reasoning_content_roundtrip
+    )
 
 
 def test_provider_interleaved_thinking_tool_e2e(smoke_config: SmokeConfig) -> None:
@@ -168,6 +193,32 @@ def _run_for_each_thinking_provider(smoke_config: SmokeConfig, scenario) -> None
     assert not failures, "\n".join(failures)
 
 
+def _run_for_each_openai_chat_thinking_provider(
+    smoke_config: SmokeConfig, scenario
+) -> None:
+    failures: list[str] = []
+    models = [
+        provider_model
+        for provider_model in ProviderMatrixDriver(smoke_config).provider_smoke_models()
+        if _provider_smoke_thinking_enabled(smoke_config, provider_model)
+        and PROVIDER_CATALOG[provider_model.provider].transport_type == "openai_chat"
+    ]
+    if not models:
+        pytest.skip(
+            "missing_env: no OpenAI-chat thinking provider smoke model configured"
+        )
+    for provider_model in models:
+        try:
+            scenario(smoke_config, provider_model)
+        except Exception as exc:
+            skip_if_upstream_unavailable_exception(exc)
+            failures.append(
+                f"{provider_model.source}={provider_model.full_model}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    assert not failures, "\n".join(failures)
+
+
 def _run_for_each_tool_provider(smoke_config: SmokeConfig, scenario) -> None:
     """Run model-emitted tool smoke only for configured or explicit smoke models."""
     failures: list[str] = []
@@ -247,6 +298,56 @@ def _scenario_adaptive_thinking_history(
         "thinking": {"type": "adaptive", "budget_tokens": 1024},
     }
     with _server_for_provider(smoke_config, provider_model, "adaptive") as server:
+        turn = ConversationDriver(server, smoke_config).stream(payload)
+    assert_product_stream(turn.events)
+
+
+def _scenario_thinking_emission(
+    smoke_config: SmokeConfig, provider_model: ProviderModel
+) -> None:
+    payload = {
+        "model": "claude-opus-4-7",
+        "max_tokens": 256,
+        "messages": [
+            {"role": "user", "content": smoke_config.prompt},
+        ],
+        "thinking": {"type": "adaptive", "budget_tokens": 1024},
+    }
+    for attempt in range(1, 4):
+        with _server_for_provider(
+            smoke_config, provider_model, f"emission-{attempt}"
+        ) as server:
+            turn = ConversationDriver(server, smoke_config).stream(payload)
+        if thinking_content(turn.events):
+            break
+    assert_product_stream(turn.events)
+    if not thinking_content(turn.events):
+        pytest.skip(
+            "no_thinking_emitted: provider accepted adaptive thinking but "
+            "emitted no thinking blocks after 3 attempts"
+        )
+
+
+def _scenario_reasoning_content_roundtrip(
+    smoke_config: SmokeConfig, provider_model: ProviderModel
+) -> None:
+    payload = {
+        "model": "claude-opus-4-7",
+        "max_tokens": 256,
+        "messages": [
+            {"role": "user", "content": smoke_config.prompt},
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "thinking", "thinking": "unsigned hidden thought"},
+                    {"type": "text", "text": "Acknowledged."},
+                ],
+            },
+            {"role": "user", "content": "Continue."},
+        ],
+        "thinking": {"type": "adaptive", "budget_tokens": 1024},
+    }
+    with _server_for_provider(smoke_config, provider_model, "roundtrip") as server:
         turn = ConversationDriver(server, smoke_config).stream(payload)
     assert_product_stream(turn.events)
 

@@ -43,6 +43,14 @@ PROVIDER_SMOKE_DEFAULT_MODELS: dict[str, str] = {
     "lmstudio": "lmstudio/local-model",
     "llamacpp": "llamacpp/local-model",
     "ollama": "ollama/llama3.1",
+    "friendliai": "friendliai/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    "fireworks": "fireworks/accounts/fireworks/models/llama-v4-maverick-17b",
+    "vllm": "vllm/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    "cliproxyapi": "cliproxyapi/claude-sonnet-4-5-20250929",
+    "groq": "groq/llama-4-maverick-17b-128e",
+    "cerebras": "cerebras/llama-4-maverick-17b",
+    "together": "together/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "kimi": "kimi/kimi-k2.6",
 }
 
 
@@ -166,12 +174,28 @@ class SmokeConfig:
             return bool(self.settings.open_router_api_key.strip())
         if provider == "deepseek":
             return bool(self.settings.deepseek_api_key.strip())
+        if provider == "friendliai":
+            return bool(self.settings.friendliai_api_key.strip())
+        if provider == "fireworks":
+            return bool(self.settings.fireworks_api_key.strip())
+        if provider == "groq":
+            return bool(self.settings.groq_api_key.strip())
+        if provider == "cerebras":
+            return bool(self.settings.cerebras_api_key.strip())
+        if provider == "together":
+            return bool(self.settings.together_api_key.strip())
+        if provider == "kimi":
+            return bool(self.settings.kimi_api_key.strip())
         if provider == "lmstudio":
             return bool(self.settings.lm_studio_base_url.strip())
         if provider == "llamacpp":
             return bool(self.settings.llamacpp_base_url.strip())
         if provider == "ollama":
             return bool(self.settings.ollama_base_url.strip())
+        if provider == "vllm":
+            return bool(self.settings.vllm_base_url.strip())
+        if provider == "cliproxyapi":
+            return bool(self.settings.cliproxyapi_base_url.strip())
         return False
 
 

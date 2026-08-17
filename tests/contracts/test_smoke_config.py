@@ -22,9 +22,17 @@ def _settings(**overrides):
         "nvidia_nim_api_key": "",
         "open_router_api_key": "",
         "deepseek_api_key": "",
+        "friendliai_api_key": "",
+        "fireworks_api_key": "",
+        "groq_api_key": "",
+        "cerebras_api_key": "",
+        "together_api_key": "",
+        "kimi_api_key": "",
         "lm_studio_base_url": "",
         "llamacpp_base_url": "",
         "ollama_base_url": "http://localhost:11434",
+        "vllm_base_url": "",
+        "cliproxyapi_base_url": "",
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -50,6 +58,53 @@ def _smoke_config(**overrides) -> SmokeConfig:
 def test_ollama_is_default_smoke_target() -> None:
     assert "ollama" in DEFAULT_TARGETS
     assert "ollama" in TARGET_REQUIRED_ENV
+
+
+def test_provider_configuration_covers_all_supported_providers(
+    monkeypatch,
+) -> None:
+    from smoke.lib.config import SUPPORTED_PROVIDER_IDS
+
+    monkeypatch.delenv("FCC_SMOKE_MODEL_NVIDIA_NIM", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_OPEN_ROUTER", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_DEEPSEEK", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_LMSTUDIO", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_LLAMACPP", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_OLLAMA", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_FRIENDLIAI", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_FIREWORKS", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_VLLM", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_CLIPROXYAPI", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_GROQ", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_CEREBRAS", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_TOGETHER", raising=False)
+    monkeypatch.delenv("FCC_SMOKE_MODEL_KIMI", raising=False)
+    config = _smoke_config(
+        provider_matrix=frozenset(SUPPORTED_PROVIDER_IDS),
+        settings=_settings(
+            nvidia_nim_api_key="k",
+            open_router_api_key="k",
+            deepseek_api_key="k",
+            friendliai_api_key="k",
+            fireworks_api_key="k",
+            groq_api_key="k",
+            cerebras_api_key="k",
+            together_api_key="k",
+            kimi_api_key="k",
+            lm_studio_base_url="http://localhost:1234",
+            llamacpp_base_url="http://localhost:8080",
+            ollama_base_url="http://localhost:11434",
+            vllm_base_url="http://localhost:8000",
+            cliproxyapi_base_url="http://localhost:5170",
+        ),
+    )
+
+    models = config.provider_smoke_models()
+
+    assert [model.provider for model in models] == list(SUPPORTED_PROVIDER_IDS)
+    for model in models:
+        assert model.full_model == PROVIDER_SMOKE_DEFAULT_MODELS[model.provider]
+        assert model.source == "provider_default"
 
 
 def test_ollama_provider_configuration_uses_base_url() -> None:
