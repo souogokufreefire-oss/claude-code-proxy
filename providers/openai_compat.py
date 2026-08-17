@@ -407,12 +407,15 @@ class OpenAIChatTransport(BaseProvider):
                         finish_reason = choice.finish_reason
                         logger.debug("{} finish_reason: {}", tag, finish_reason)
 
-                    # Handle reasoning_content (OpenAI extended format)
+                    # Handle reasoning_content (OpenAI extended format). An empty
+                    # string is explicit reasoning state: start the thinking block
+                    # without emitting a visible delta.
                     reasoning = getattr(delta, "reasoning_content", None)
-                    if thinking_enabled and reasoning:
+                    if thinking_enabled and isinstance(reasoning, str):
                         for event in sse.ensure_thinking_block():
                             yield event
-                        yield sse.emit_thinking_delta(reasoning)
+                        if reasoning:
+                            yield sse.emit_thinking_delta(reasoning)
 
                     # Provider-specific extra reasoning (e.g. OpenRouter reasoning_details)
                     for event in self._handle_extra_reasoning(

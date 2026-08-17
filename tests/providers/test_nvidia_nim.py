@@ -361,6 +361,47 @@ async def test_stream_response_thinking_reasoning_content(nim_provider):
 
 
 @pytest.mark.asyncio
+async def test_stream_response_empty_reasoning_content_starts_thinking_block(
+    nim_provider,
+):
+    """Empty ``reasoning_content`` is explicit state: start the thinking block, no delta."""
+    req = MockRequest()
+
+    mock_chunk = MagicMock()
+    mock_chunk.choices = [
+        MagicMock(
+            delta=MagicMock(content=None, reasoning_content=""),
+            finish_reason=None,
+        )
+    ]
+    mock_chunk.usage = None
+
+    async def mock_stream():
+        yield mock_chunk
+
+    with patch.object(
+        nim_provider._client.chat.completions, "create", new_callable=AsyncMock
+    ) as mock_create:
+        mock_create.return_value = mock_stream()
+
+        events = [e async for e in nim_provider.stream_response(req)]
+
+    thinking_started = False
+    thinking_deltas = 0
+    for e in events:
+        if (
+            "event: content_block_start" in e
+            and '"type": "thinking"' in e
+            and '"thinking"' in e
+        ):
+            thinking_started = True
+        if "event: content_block_delta" in e and '"thinking_delta"' in e:
+            thinking_deltas += 1
+    assert thinking_started
+    assert thinking_deltas == 0
+
+
+@pytest.mark.asyncio
 async def test_stream_response_suppresses_thinking_when_disabled(provider_config):
     provider = NvidiaNimProvider(
         provider_config.model_copy(update={"enable_thinking": False}),

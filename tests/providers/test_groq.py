@@ -21,9 +21,10 @@ def groq_config():
 
 
 class MockMessage:
-    def __init__(self, role, content):
+    def __init__(self, role, content, reasoning_content=None):
         self.role = role
         self.content = content
+        self.reasoning_content = reasoning_content
 
 
 class MockRequest:
@@ -98,6 +99,30 @@ def test_build_request_body_with_tools(groq_config):
     assert "tools" in body
     assert len(body["tools"]) == 1
     assert body["tools"][0]["type"] == "function"
+
+
+def test_build_request_body_drops_empty_reasoning_content(groq_config):
+    """Empty ``reasoning_content`` must never reach Groq's payload."""
+    from providers.groq import GroqProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = GroqProvider(groq_config)
+
+    request = MockRequest(
+        model="llama-4-maverick-17b-128e",
+        messages=[
+            MockMessage("user", "Hello"),
+            MockMessage("assistant", "The answer is 4.", reasoning_content=""),
+        ],
+        max_tokens=100,
+        thinking=MagicMock(enabled=True),
+    )
+    body = provider._build_request_body(request, thinking_enabled=True)
+
+    assistant = body["messages"][1]
+    assert assistant["role"] == "assistant"
+    assert "reasoning_content" not in assistant
+    assert assistant["content"] == "The answer is 4."
 
 
 def test_catalog_descriptor():
