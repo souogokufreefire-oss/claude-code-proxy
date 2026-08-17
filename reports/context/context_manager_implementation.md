@@ -11,7 +11,7 @@ Status: Complete (code green; runtime limitation documented in §8)
 | `core/context/__init__.py` | **New** - package exports |
 | `config/settings.py` | Added `context_enabled`, `context_max_tokens`, `context_reserved_output_tokens`, `context_min_recent_messages` |
 | `api/services.py` | Integrated `ContextManager.optimize()` before provider routing; use trimmed request for both provider attempts; capture `ContextResult`; guard `context_enabled` |
-| `providers/groq/request.py` | `build_request_body` returns `(body, tool_count, msg_count)`; removed per-tool debug logs; single payload-size warning with `{}` formatting; removed `reasoning_content` passthrough |
+| `providers/groq/request.py` | `build_request_body` still returns `body` (dict); single `GROQ_PAYLOAD_SIZE` warning with `{}` formatting logging bytes + tool/message counts; adds `GROQ_TOOLS_TRIM` (keeps first 8 tools, drops the rest); pops `reasoning_content` from converted messages (Groq does not support it) |
 | `tests/core/context/test_context_manager.py` | **New** - unit tests (budget fit, trimming, tool cycles, protected messages, immutability) |
 | `tests/api/test_context_manager_integration.py` | **New** - integration tests (Groq trimmed, non-Groq unchanged, `context_enabled=false`, small request untouched) |
 | `tests/providers/test_failover.py` | Import ordering fix (pre-existing ruff I001 error blocking `ruff check .`) |

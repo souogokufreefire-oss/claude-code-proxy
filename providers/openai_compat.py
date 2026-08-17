@@ -171,9 +171,7 @@ class OpenAIChatTransport(BaseProvider):
 
         body = self._apply_learned_output_cap(body)
         retry_kwargs = (
-            {"max_retries": 0}
-            if should_signal_failover(self._provider_name)
-            else {}
+            {"max_retries": 0} if should_signal_failover(self._provider_name) else {}
         )
         try:
             stream = await self._global_rate_limiter.execute_with_retry(

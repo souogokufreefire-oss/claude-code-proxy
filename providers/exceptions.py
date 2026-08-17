@@ -109,7 +109,6 @@ class ServiceUnavailableError(ProviderError):
         )
 
 
-
 class ProviderFailoverSignal(Exception):
     """Internal signal requesting a cross-provider failover.
 

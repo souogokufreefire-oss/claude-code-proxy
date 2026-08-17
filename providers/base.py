@@ -16,7 +16,6 @@ fallback_model_for = _failover.fallback_model_for
 fallback_provider_for = _failover.fallback_provider_for
 
 
-
 class ProviderConfig(BaseModel):
     """Configuration for a provider.
 
