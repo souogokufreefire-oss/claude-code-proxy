@@ -15,6 +15,7 @@ from loguru import logger
 from config.settings import Settings
 from core.anthropic import get_token_count, get_user_facing_error_message
 from core.anthropic.sse import ANTHROPIC_SSE_RESPONSE_HEADERS
+from core.context.context_manager import ContextManager
 from providers.base import (
     BaseProvider,
     begin_primary_failover,
@@ -228,9 +229,45 @@ class ClaudeProxyService:
                 )
             logger.debug("No optimization matched, routing to provider")
 
+            # --- Context Window Manager (Groq-only) ---
+            provider_id = routed.resolved.provider_id
+            before_tokens = self._token_counter(
+                routed.request.messages, routed.request.system, routed.request.tools
+            )
+            context_manager: ContextManager | None = None
+            if provider_id == "groq" and self._settings.context_enabled:
+                context_manager = ContextManager(self._settings)
+            # If not Groq, use the request as-is
+            if context_manager is not None:
+                context_result = context_manager.optimize(routed.request)
+                routed_request: MessagesRequest = context_result.request
+                after_tokens = self._token_counter(
+                    routed_request.messages, routed_request.system, routed_request.tools
+                )
+                removed_messages = context_result.removed_messages
+                removed_tokens = context_result.removed_tokens
+                trimmed = context_result.trimmed
+            else:
+                routed_request = routed.request
+                after_tokens = before_tokens
+                removed_messages = 0
+                removed_tokens = 0
+                trimmed = False
+            logger.debug(
+                "CONTEXT_MANAGER: provider={} before_tokens={} after_tokens={} "
+                "removed_messages={} removed_tokens={} trimmed={}",
+                provider_id,
+                before_tokens,
+                after_tokens,
+                removed_messages,
+                removed_tokens,
+                trimmed,
+            )
+            # -------------------------------------------
+
             provider = self._provider_getter(routed.resolved.provider_id)
             provider.preflight_stream(
-                routed.request,
+                routed_request,
                 thinking_enabled=routed.resolved.thinking_enabled,
             )
 
@@ -238,19 +275,19 @@ class ClaudeProxyService:
             logger.info(
                 "API_REQUEST: request_id={} model={} messages={}",
                 request_id,
-                routed.request.model,
-                len(routed.request.messages),
+                routed_request.model,
+                len(routed_request.messages),
             )
             if self._settings.log_raw_api_payloads:
                 logger.debug(
-                    "FULL_PAYLOAD [{}]: {}", request_id, routed.request.model_dump()
+                    "FULL_PAYLOAD [{}]: {}", request_id, routed_request.model_dump()
                 )
 
             input_tokens = self._token_counter(
-                routed.request.messages, routed.request.system, routed.request.tools
+                routed_request.messages, routed_request.system, routed_request.tools
             )
             primary_stream = provider.stream_response(
-                routed.request,
+                routed_request,
                 input_tokens=input_tokens,
                 request_id=request_id,
                 thinking_enabled=routed.resolved.thinking_enabled,
@@ -260,7 +297,7 @@ class ClaudeProxyService:
                 self._stream_with_provider_failover(
                     primary_stream=primary_stream,
                     provider_id=routed.resolved.provider_id,
-                    request=routed.request,
+                    request=routed_request,
                     input_tokens=input_tokens,
                     request_id=request_id,
                     thinking_enabled=routed.resolved.thinking_enabled,

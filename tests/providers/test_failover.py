@@ -1,13 +1,13 @@
 import httpx
-from openai import APIStatusError
 import pytest
+from openai import APIStatusError
 
+from providers.exceptions import ProviderFailoverSignal
 from providers.failover import (
     fallback_model_for,
     fallback_provider_for,
     is_failover_eligible_error,
 )
-from providers.exceptions import ProviderFailoverSignal
 
 
 def _status_error(status: int, body: dict | None = None) -> APIStatusError:

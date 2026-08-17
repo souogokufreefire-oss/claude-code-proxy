@@ -205,9 +205,7 @@ class Settings(BaseSettings):
     groq_key_usage_limit: int = Field(
         default=0, validation_alias="GROQ_KEY_USAGE_LIMIT"
     )
-    groq_base_url: str = Field(
-        default="", validation_alias="GROQ_BASE_URL"
-    )
+    groq_base_url: str = Field(default="", validation_alias="GROQ_BASE_URL")
     groq_proxy: str = Field(default="", validation_alias="GROQ_PROXY")
 
     # ==================== Cerebras Config ====================
@@ -303,6 +301,18 @@ class Settings(BaseSettings):
     # When true, skip private/loopback/link-local IP blocking for web_fetch (lab only).
     web_fetch_allow_private_networks: bool = Field(
         default=False, validation_alias="WEB_FETCH_ALLOW_PRIVATE_NETWORKS"
+    )
+
+    # ==================== Context Window Manager ====================
+    context_enabled: bool = Field(default=True, validation_alias="CONTEXT_ENABLED")
+    context_max_tokens: int = Field(
+        default=24_000, validation_alias="CONTEXT_MAX_TOKENS"
+    )
+    context_reserved_output_tokens: int = Field(
+        default=4_096, validation_alias="CONTEXT_RESERVED_OUTPUT_TOKENS"
+    )
+    context_min_recent_messages: int = Field(
+        default=10, validation_alias="CONTEXT_MIN_RECENT_MESSAGES"
     )
 
     # ==================== Debug / diagnostic logging (avoid sensitive content) ====================
