@@ -20,7 +20,9 @@ fallback key rotation, local request optimizations, and optional web server
 tools.
 
 CI enforces formatting, linting, type checking, and 1013 tests with zero
-type-suppression tolerance.
+type-suppression tolerance. Local validation is green; GitHub Actions
+execution in this repository is **NÃO VERIFICADO** — no workflow run has
+been observed (see `HANDOFF.md`).
 
 ## Near-Term (Next Release)
 

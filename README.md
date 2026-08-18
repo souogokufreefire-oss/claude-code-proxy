@@ -7,7 +7,7 @@ Use Claude Code CLI, VS Code, or JetBrains ACP through your own Anthropic-compat
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-3776ab.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=for-the-badge)](https://github.com/astral-sh/uv)
-[![Tested with Pytest](https://img.shields.io/badge/testing-Pytest-00c0ff.svg?style=for-the-badge)](https://github.com/suparious/claude-code-proxy/actions/workflows/tests.yml)
+[![Tested with Pytest](https://img.shields.io/badge/testing-Pytest-00c0ff.svg?style=for-the-badge)](https://github.com/souogokufreefire-oss/claude-code-proxy/actions/workflows/tests.yml)
 [![Type checking: Ty](https://img.shields.io/badge/type%20checking-ty-ffcc00.svg?style=for-the-badge)](https://pypi.org/project/ty/)
 [![Code style: Ruff](https://img.shields.io/badge/code%20formatting-ruff-f5a623.svg?style=for-the-badge)](https://github.com/astral-sh/ruff)
 [![Logging: Loguru](https://img.shields.io/badge/logging-loguru-4ecdc4.svg?style=for-the-badge)](https://github.com/Delgan/loguru)
@@ -667,7 +667,10 @@ uv run ty check
 uv run pytest
 ```
 
-Run them in that order before pushing. CI enforces the same checks.
+Run them in that order before pushing. The CI workflow
+(`.github/workflows/tests.yml`) enforces the same checks. GitHub Actions
+execution is currently **NÃO VERIFICADO** in this repository: no workflow
+run has been observed; local validation remains green (see `HANDOFF.md`).
 
 ### Package Scripts
 

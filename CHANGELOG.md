@@ -78,6 +78,17 @@ Context Window Manager release.
   a code defect; it predates the Context Window Manager and is unaffected by
   it.
 
+### CI Status
+
+- GitHub Actions execution is **NÃO VERIFICADO**: the workflow
+  (`.github/workflows/tests.yml`) exists and is configured (`on: push` /
+  `pull_request` to main/master), but no workflow run has been observed in
+  this repository. The exact cause of the missing runs was not determined
+  via API; the repository is a fork, so fork-level or account-level
+  restrictions remain a hypothesis, not a confirmed fact. The workflow was
+  not altered to mask or work around the issue. Local validation (format,
+  lint, type, 1013 tests) is green and unaffected.
+
 ## 2.2.0 - 2026-07-08
 
 Kimi provider, upstream compatibility and security hardening release.

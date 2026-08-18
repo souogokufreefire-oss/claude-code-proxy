@@ -132,6 +132,21 @@ example with code for both transport types. The checklist:
 
 Actions are pinned to commit SHAs (not tags) for supply-chain safety.
 
+### GitHub Actions Status
+
+**NÃO VERIFICADO.** The workflow exists and is configured (`on: push` /
+`pull_request` to main/master), but **no workflow run has ever been observed**
+in this repository (0 runs). The exact cause of the missing runs was **not
+determined via API**. The repository is a fork, so fork-specific Actions
+execution restrictions remain a **hypothesis, not a confirmed fact**; an
+account-level restriction is also possible. The workflow was **not altered**
+to mask or work around the issue. Note: pushing the `v2.3.0` tag alone is not
+a configured trigger for this workflow.
+
+This does not invalidate the local validation (format, lint, type, 1013
+tests — all green) nor the code audit, but "GitHub CI green" cannot be
+claimed as objective evidence until a real run is observed.
+
 Dependabot is configured for weekly uv and github-actions updates
 (`.github/dependabot.yml`). Minor/patch updates are grouped and auto-merge
 after CI passes (major version bumps like starlette 0.x→1.x still need
