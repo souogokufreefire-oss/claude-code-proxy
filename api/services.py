@@ -248,12 +248,16 @@ class ClaudeProxyService:
                 removed_messages = context_result.removed_messages
                 removed_tokens = context_result.removed_tokens
                 trimmed = context_result.trimmed
+                budget_tokens = context_result.budget_tokens
+                overflow = context_result.overflow
             else:
                 routed_request = routed.request
                 after_tokens = before_tokens
                 removed_messages = 0
                 removed_tokens = 0
                 trimmed = False
+                budget_tokens = 0
+                overflow = False
             logger.debug(
                 "CONTEXT_MANAGER: provider={} before_tokens={} after_tokens={} "
                 "removed_messages={} removed_tokens={} trimmed={}",
@@ -264,6 +268,28 @@ class ClaudeProxyService:
                 removed_tokens,
                 trimmed,
             )
+            if overflow:
+                logger.warning(
+                    "CONTEXT_OVERFLOW: provider={} before_tokens={} after_tokens={} "
+                    "budget={} removed_messages={} removed_tokens={} overflow=true",
+                    provider_id,
+                    before_tokens,
+                    after_tokens,
+                    budget_tokens,
+                    removed_messages,
+                    removed_tokens,
+                )
+            elif trimmed:
+                logger.info(
+                    "CONTEXT_TRIMMED: provider={} before_tokens={} after_tokens={} "
+                    "budget={} removed_messages={} removed_tokens={}",
+                    provider_id,
+                    before_tokens,
+                    after_tokens,
+                    budget_tokens,
+                    removed_messages,
+                    removed_tokens,
+                )
             # -------------------------------------------
 
             provider = self._provider_getter(routed.resolved.provider_id)

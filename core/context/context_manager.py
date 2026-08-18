@@ -44,11 +44,18 @@ class ContextResult:
         removed_messages: int,
         removed_tokens: int,
         trimmed: bool,
+        *,
+        budget_tokens: int = 0,
+        overflow: bool = False,
     ) -> None:
         self.request: Any = request
         self.removed_messages = removed_messages
         self.removed_tokens = removed_tokens
         self.trimmed = trimmed
+        self.budget_tokens = budget_tokens
+        # True when the protected core (system + first user + recent + tool
+        # cycles) alone exceeds the budget, so trimming cannot fit the payload.
+        self.overflow = overflow
 
 
 class ContextManager:
@@ -100,6 +107,7 @@ class ContextManager:
                 removed_messages=0,
                 removed_tokens=0,
                 trimmed=False,
+                budget_tokens=self._budget,
             )
 
         trimmed_request = deepcopy(request)
@@ -111,6 +119,8 @@ class ContextManager:
             removed_messages=removed_messages,
             removed_tokens=tokens - new_tokens,
             trimmed=True,
+            budget_tokens=self._budget,
+            overflow=new_tokens > self._budget,
         )
 
     # ------------------------------------------------------------------

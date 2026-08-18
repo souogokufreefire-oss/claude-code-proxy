@@ -351,6 +351,8 @@ class TestContextResult:
         assert result.removed_messages == 2
         assert result.removed_tokens == 50
         assert result.trimmed is True
+        assert result.budget_tokens == 0
+        assert result.overflow is False
 
     def test_context_result_no_trim(self) -> None:
         req = MessagesRequest(model="test", messages=[])
@@ -360,3 +362,66 @@ class TestContextResult:
         assert result.trimmed is False
         assert result.removed_messages == 0
         assert result.removed_tokens == 0
+        assert result.overflow is False
+
+
+class TestContextManagerOverflow:
+    def test_overflow_when_protected_core_exceeds_budget(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A single protected message over budget cannot be trimmed: overflow."""
+        monkeypatch.setenv("CONTEXT_MAX_TOKENS", "100")
+        monkeypatch.setenv("CONTEXT_RESERVED_OUTPUT_TOKENS", "10")
+        monkeypatch.setenv("CONTEXT_MIN_RECENT_MESSAGES", "10")
+        cm = ContextManager(Settings())
+        request = _make_request([_make_message("user", _long_text(0, words=400))])
+
+        result: ContextResult = cm.optimize(request)
+
+        assert result.trimmed is True
+        assert result.removed_messages == 0
+        assert result.overflow is True
+        assert result.budget_tokens == 90
+
+    def test_overflow_false_when_trim_succeeds(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Trimming that fits the budget must not flag overflow."""
+        monkeypatch.setenv("CONTEXT_MAX_TOKENS", "600")
+        monkeypatch.setenv("CONTEXT_RESERVED_OUTPUT_TOKENS", "10")
+        monkeypatch.setenv("CONTEXT_MIN_RECENT_MESSAGES", "2")
+        cm = ContextManager(Settings())
+        request = _make_request(
+            [
+                _make_message("user", _long_text(0, words=20)),
+                _make_message("assistant", _long_text(1, words=400)),
+                _make_message("user", _long_text(2, words=400)),
+                _make_message("assistant", _long_text(3, words=400)),
+                _make_message("user", _long_text(4, words=400)),
+                _make_message("assistant", _long_text(5, words=400)),
+                _make_message("user", _long_text(6, words=400)),
+                _make_message("assistant", _long_text(7, words=400)),
+                _make_message("user", _long_text(8, words=50)),
+                _make_message("assistant", _long_text(9, words=50)),
+            ]
+        )
+
+        result: ContextResult = cm.optimize(request)
+
+        assert result.trimmed is True
+        assert result.removed_messages > 0
+        assert result.overflow is False
+
+    def test_no_overflow_when_within_budget(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CONTEXT_MAX_TOKENS", "1000")
+        monkeypatch.setenv("CONTEXT_RESERVED_OUTPUT_TOKENS", "100")
+        cm = ContextManager(Settings())
+        request = _make_request([_make_message("user", "Hello")])
+
+        result: ContextResult = cm.optimize(request)
+
+        assert result.trimmed is False
+        assert result.overflow is False
+        assert result.budget_tokens == 900

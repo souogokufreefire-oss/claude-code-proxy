@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import pytest
+from loguru import logger as loguru_logger
 
 from api.model_router import ModelRouter, ResolvedModel, RoutedMessagesRequest
 from api.models.anthropic import ContentBlockText, Message, MessagesRequest
@@ -136,3 +138,49 @@ def test_groq_small_request_not_trimmed() -> None:
 
     assert len(captured) == 1
     assert len(captured[0].messages) == 1
+
+
+def _capture_loguru(records: list[str]) -> Callable[[], None]:
+    sink_id = loguru_logger.add(lambda message: records.append(message), level="DEBUG")
+
+    def remove() -> None:
+        loguru_logger.remove(sink_id)
+
+    return remove
+
+
+def test_groq_trimmed_logs_info(monkeypatch: pytest.MonkeyPatch) -> None:
+    records: list[str] = []
+    remove = _capture_loguru(records)
+    try:
+        _service_for("groq", [], Settings()).create_message(_make_large_request())
+    finally:
+        remove()
+
+    assert any("CONTEXT_TRIMMED: provider=groq" in r for r in records)
+
+
+def test_groq_overflow_logs_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CONTEXT_MAX_TOKENS", "100")
+    monkeypatch.setenv("CONTEXT_RESERVED_OUTPUT_TOKENS", "10")
+    monkeypatch.setenv("CONTEXT_MIN_RECENT_MESSAGES", "10")
+    request = MessagesRequest(
+        model="claude-sonnet-4-5",
+        messages=[
+            Message(
+                role="user",
+                content=[ContentBlockText(type="text", text=_long_text(0, words=400))],
+            )
+        ],
+    )
+    records: list[str] = []
+    remove = _capture_loguru(records)
+    try:
+        _service_for("groq", [], Settings()).create_message(request)
+    finally:
+        remove()
+
+    assert any(
+        "CONTEXT_OVERFLOW: provider=groq" in r and "overflow=true" in r for r in records
+    )
+    assert not any("CONTEXT_TRIMMED" in r for r in records)
