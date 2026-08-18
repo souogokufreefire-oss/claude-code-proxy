@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from fastapi.responses import StreamingResponse
 
 import api.web_tools.constants as web_tool_constants
 from api.model_router import ModelRouter, ResolvedModel, RoutedMessagesRequest
@@ -129,6 +130,117 @@ def test_service_rejects_forced_server_tool_on_openai_when_disabled(monkeypatch)
     )
     with pytest.raises(InvalidRequestError, match="ENABLE_WEB_SERVER_TOOLS"):
         service.create_message(request)
+
+
+_OPENAI_CHAT_PROVIDER_IDS_PARAM = pytest.mark.parametrize(
+    "provider_id",
+    ("nvidia_nim", "groq", "cerebras", "together", "kimi"),
+)
+
+
+def test_openai_chat_provider_ids_derived_from_catalog():
+    from config.provider_catalog import OPENAI_CHAT_PROVIDER_IDS
+
+    assert (
+        frozenset({"nvidia_nim", "groq", "cerebras", "together", "kimi"})
+        == OPENAI_CHAT_PROVIDER_IDS
+    )
+
+
+@_OPENAI_CHAT_PROVIDER_IDS_PARAM
+def test_service_rejects_forced_server_tool_disabled_for_all_openai_chat(
+    monkeypatch, provider_id: str
+):
+    """Forced web_search on any OpenAI-chat transport must fail when web tools are disabled."""
+    monkeypatch.delenv("ENABLE_WEB_SERVER_TOOLS", raising=False)
+    settings = Settings()
+    service = ClaudeProxyService(
+        settings,
+        provider_getter=lambda _: MagicMock(),
+        model_router=FixedProviderModelRouter(settings, provider_id),
+    )
+    request = MessagesRequest(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=100,
+        messages=[Message(role="user", content="search for something")],
+        tools=[Tool(name="web_search", type="web_search_20250305")],
+        tool_choice={"type": "tool", "name": "web_search"},
+    )
+    with pytest.raises(InvalidRequestError, match="ENABLE_WEB_SERVER_TOOLS"):
+        service.create_message(request)
+
+
+@_OPENAI_CHAT_PROVIDER_IDS_PARAM
+def test_service_rejects_listed_server_tool_for_all_openai_chat(
+    monkeypatch, provider_id: str
+):
+    """Listing web_search without forcing it must not silently reach OpenAI-chat upstreams."""
+    monkeypatch.delenv("ENABLE_WEB_SERVER_TOOLS", raising=False)
+    settings = Settings()
+    service = ClaudeProxyService(
+        settings,
+        provider_getter=lambda _: MagicMock(),
+        model_router=FixedProviderModelRouter(settings, provider_id),
+    )
+    request = MessagesRequest(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=100,
+        messages=[Message(role="user", content="search for something")],
+        tools=[Tool(name="web_search", type="web_search_20250305")],
+    )
+    with pytest.raises(
+        InvalidRequestError, match="cannot use listed Anthropic server tools"
+    ):
+        service.create_message(request)
+
+
+def test_service_handles_forced_server_tool_locally_when_enabled_for_openai_chat(
+    monkeypatch,
+):
+    """Forced web_search with web tools enabled is served locally for OpenAI-chat providers."""
+    monkeypatch.setenv("ENABLE_WEB_SERVER_TOOLS", "true")
+    settings = Settings()
+    service = ClaudeProxyService(
+        settings,
+        provider_getter=lambda _: MagicMock(),
+        model_router=FixedProviderModelRouter(settings, "nvidia_nim"),
+    )
+    request = MessagesRequest(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=100,
+        messages=[Message(role="user", content="search for something")],
+        tools=[Tool(name="web_search", type="web_search_20250305")],
+        tool_choice={"type": "tool", "name": "web_search"},
+    )
+    response = service.create_message(request)
+    assert isinstance(response, StreamingResponse)
+
+
+@pytest.mark.parametrize(
+    "provider_id",
+    ("open_router", "deepseek", "ollama", "friendliai", "fireworks"),
+)
+def test_service_native_provider_unaffected_by_openai_chat_guard(
+    monkeypatch, provider_id: str
+):
+    """Native Anthropic transports must pass listed and forced server tools through unchanged."""
+    monkeypatch.delenv("ENABLE_WEB_SERVER_TOOLS", raising=False)
+    settings = Settings()
+    provider_getter = MagicMock()
+    service = ClaudeProxyService(
+        settings,
+        provider_getter=provider_getter,
+        model_router=FixedProviderModelRouter(settings, provider_id),
+    )
+    request = MessagesRequest(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=100,
+        messages=[Message(role="user", content="search for something")],
+        tools=[Tool(name="web_search", type="web_search_20250305")],
+    )
+    response = service.create_message(request)
+    assert isinstance(response, StreamingResponse)
+    provider_getter.assert_called_once_with(provider_id)
 
 
 @pytest.mark.parametrize(

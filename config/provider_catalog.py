@@ -229,3 +229,14 @@ SUPPORTED_PROVIDER_IDS: tuple[str, ...] = tuple(PROVIDER_CATALOG.keys())
 
 if len(set(SUPPORTED_PROVIDER_IDS)) != len(SUPPORTED_PROVIDER_IDS):
     raise AssertionError("Duplicate provider ids in PROVIDER_CATALOG key order")
+
+# Provider ids using the OpenAI chat-completions transport, derived from the
+# catalog so server-tool semantics and transport logic share one source of truth.
+OPENAI_CHAT_PROVIDER_IDS: frozenset[str] = frozenset(
+    provider_id
+    for provider_id, descriptor in PROVIDER_CATALOG.items()
+    if descriptor.transport_type == "openai_chat"
+)
+
+if not OPENAI_CHAT_PROVIDER_IDS:
+    raise AssertionError("No OpenAI chat providers in PROVIDER_CATALOG")

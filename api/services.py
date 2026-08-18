@@ -12,6 +12,7 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
+from config.provider_catalog import OPENAI_CHAT_PROVIDER_IDS
 from config.settings import Settings
 from core.anthropic import get_token_count, get_user_facing_error_message
 from core.anthropic.sse import ANTHROPIC_SSE_RESPONSE_HEADERS
@@ -44,9 +45,6 @@ from .web_tools.streaming import stream_web_server_tool_response
 TokenCounter = Callable[[list[Any], str | list[Any] | None, list[Any] | None], int]
 
 ProviderGetter = Callable[[str], BaseProvider]
-
-# Providers that use ``/chat/completions`` + Anthropic-to-OpenAI conversion (not native Messages).
-_OPENAI_CHAT_UPSTREAM_IDS = frozenset({"nvidia_nim"})
 
 
 def anthropic_sse_streaming_response(
@@ -194,7 +192,7 @@ class ClaudeProxyService:
             _require_non_empty_messages(request_data.messages)
 
             routed = self._model_router.resolve_messages_request(request_data)
-            if routed.resolved.provider_id in _OPENAI_CHAT_UPSTREAM_IDS:
+            if routed.resolved.provider_id in OPENAI_CHAT_PROVIDER_IDS:
                 tool_err = openai_chat_upstream_server_tool_error(
                     routed.request,
                     web_tools_enabled=self._settings.enable_web_server_tools,
