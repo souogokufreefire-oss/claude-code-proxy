@@ -16,7 +16,7 @@ Priority levels: **P0** (blocking/security), **P1** (next release), **P2** (near
 - [x] **(DONE 2026-07-07)** Close 6 stale dependabot PRs (#12, #16, #17, #18, #19, #20) — superseded by consolidated dependency upgrade commit
 - [x] **(DONE 2026-07-08)** Enable dependabot auto-merge (repo setting flipped via API; minor/patch updates auto-merge after CI)
 - [x] **(DONE 2026-07-08)** Cap dependabot PR queue size (uv: 5, github-actions: 3) to prevent future pileup
-- [ ] **P3** Pin remaining GitHub Actions to commit SHAs (checkout + setup-uv already pinned)
+- [x] **(DONE 2026-08-17)** Pin remaining GitHub Actions to commit SHAs — verified: `actions/checkout@9c091bb` and `astral-sh/setup-uv@f98e069` pinned in `.github/workflows/tests.yml`
 
 ## Provider Improvements
 

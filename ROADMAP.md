@@ -1,11 +1,11 @@
 # Roadmap
 
-> Last updated: 2026-07-08
+> Last updated: 2026-08-17
 
 Directional guide for `claude-code-proxy`. Items here are intentions, not
 commitments. For tracked work items, see `BACKLOG.md`.
 
-## Current State (v2.1.0)
+## Current State (v2.2.0)
 
 Stable, secure, fully functional proxy with 14 provider backends:
 
@@ -14,25 +14,28 @@ Stable, secure, fully functional proxy with 14 provider backends:
 - **OpenAI Chat transport (5):** NVIDIA NIM, Groq, Cerebras, Together AI, Kimi
 
 Per-tier model routing (Opus/Sonnet/Haiku/fallback), streaming, tool use,
-thinking/reasoning blocks, image input conversion, fallback key rotation,
-local request optimizations, and optional web server tools.
+thinking/reasoning blocks, OpenAI chat reasoning and tool history replay,
+Context Window Manager (Groq payload trimming), image input conversion,
+fallback key rotation, local request optimizations, and optional web server
+tools.
 
-CI enforces formatting, linting, type checking, and 878 tests with zero
+CI enforces formatting, linting, type checking, and 932 tests with zero
 type-suppression tolerance.
 
 ## Near-Term (Next Release)
 
 ### Provider Hardening
 
-- Smoke-test coverage for all 14 providers against live endpoints
-- Verify thinking/reasoning support per provider (some marked conservatively)
-- Expand OpenAI-chat converter edge case coverage (long sessions, tool
-  sequence repair)
+- [x] Smoke-test coverage for all 14 providers against live endpoints
+      (commit `ef1cf5e`)
+- [x] Verify thinking/reasoning support per provider (some marked
+      conservatively)
+- [x] Expand OpenAI-chat converter edge case coverage (reasoning and tool
+      history replay, commit `0723120`)
 
 ### Kimi Provider Documentation
 
-- Kimi provider code exists and is functional but was added after the 2.1.0
-  release notes. Document it in README provider table and CHANGELOG.
+- [x] Kimi provider documented in README provider table and CHANGELOG (2.2.0)
 
 ### Dependency Hygiene
 

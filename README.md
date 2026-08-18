@@ -326,7 +326,7 @@ Groq uses LPU inference — the fastest tokens-per-second of any provider. The p
 - `groq/deepseek-r1-distill-llama-70b`
 - `groq/qwen-2.5-coder-32b`
 
-Groq doesn't return a native `reasoning_content` field. Reasoning models emit think tags in the content stream, which the proxy's parser handles automatically.
+Groq doesn't return a native `reasoning_content` field. Reasoning models emit think tags in the content stream, which the proxy's parser handles automatically. The endpoint defaults to `https://api.groq.com/openai/v1`; override it with `GROQ_BASE_URL` if needed.
 
 </details>
 
@@ -635,6 +635,7 @@ NIM / OpenRouter / DeepSeek / LM Studio / llama.cpp / Ollama / FriendliAI / Fire
 Important pieces:
 
 - FastAPI exposes Anthropic-compatible routes such as `/v1/messages`, `/v1/messages/count_tokens`, and `/v1/models`.
+- `/v1/messages` is always streamed as Anthropic SSE, regardless of the request's `stream` field — Claude Code always sends `stream: true` and expects SSE.
 - Model routing resolves the Claude model name to `MODEL_OPUS`, `MODEL_SONNET`, `MODEL_HAIKU`, or `MODEL`.
 - NIM uses OpenAI chat streaming translated into Anthropic SSE.
 - OpenRouter, DeepSeek, LM Studio, llama.cpp, Ollama, FriendliAI, Fireworks AI, vLLM, and CLIProxyAPI use Anthropic Messages style transports.
