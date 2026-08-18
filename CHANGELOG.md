@@ -43,7 +43,7 @@ Context Window Manager release.
   byte, tool, and message counts; `GROQ_TOOLS_TRIM` keeps the first 8 tools;
   `reasoning_content` keys are dropped (unsupported by Groq).
 - Unit tests (`tests/core/context/`) and service-level integration tests
-  (`tests/api/test_context_manager_integration.py`) — 963 tests total.
+  (`tests/api/test_context_manager_integration.py`) — 987 tests total.
 
 ### Known Limitation
 
