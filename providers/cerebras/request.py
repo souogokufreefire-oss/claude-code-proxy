@@ -13,6 +13,16 @@ from core.anthropic.conversion import OpenAIConversionError
 from providers.exceptions import InvalidRequestError
 
 
+def _replays_prior_thinking(body: dict) -> bool:
+    """True when any assistant message replays prior reasoning content."""
+    return any(
+        isinstance(msg, dict)
+        and msg.get("role") == "assistant"
+        and "reasoning_content" in msg
+        for msg in body.get("messages", [])
+    )
+
+
 def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
     """Build an OpenAI-format request body from an Anthropic Messages request."""
     logger.debug(
@@ -36,6 +46,13 @@ def build_request_body(request_data: Any, *, thinking_enabled: bool) -> dict:
     # reasoning_effort for thinking control (retried without on unsupported models)
     if thinking_enabled and "reasoning_effort" not in body:
         body["reasoning_effort"] = "medium"
+
+    # Preserved thinking (zai-glm-4.7): clear_thinking defaults to true on the
+    # API; sending false keeps prior-turn reasoning in the prompt context for
+    # agentic multi-turn conversations. Only sent when the replay actually
+    # contains prior reasoning; retried without on unsupported models (400).
+    if thinking_enabled and _replays_prior_thinking(body):
+        body["clear_thinking"] = False
 
     set_if_not_none(body, "temperature", getattr(request_data, "temperature", None))
     set_if_not_none(body, "top_p", getattr(request_data, "top_p", None))

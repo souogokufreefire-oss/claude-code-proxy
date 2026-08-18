@@ -33,20 +33,25 @@ class CerebrasProvider(OpenAIChatTransport):
         )
 
     def _get_retry_request_body(self, error: Exception, body: dict) -> dict | None:
-        """Retry without reasoning_effort when Cerebras rejects it (400)."""
+        """Retry without reasoning params Cerebras rejects (400)."""
         if not isinstance(error, openai.BadRequestError):
             return None
 
         error_text = str(error).lower()
-        if "reasoning_effort" not in error_text:
-            return None
-
-        if "reasoning_effort" not in body:
+        reasoning_keys = ("reasoning_effort", "clear_thinking")
+        if not any(key in error_text for key in reasoning_keys):
             return None
 
         retry_body = deepcopy(body)
-        retry_body.pop("reasoning_effort", None)
+        dropped: list[str] = []
+        for key in reasoning_keys:
+            if key in error_text and key in body:
+                retry_body.pop(key, None)
+                dropped.append(key)
+        if not dropped:
+            return None
         logger.warning(
-            "CEREBRAS_STREAM: retrying without reasoning_effort after 400 error"
+            "CEREBRAS_STREAM: retrying without {} after 400 error",
+            ", ".join(dropped),
         )
         return retry_body

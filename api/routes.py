@@ -84,7 +84,9 @@ async def create_message(
     service: ClaudeProxyService = Depends(get_proxy_service),
     _auth=Depends(require_api_key),
 ):
-    """Create a message (always streaming)."""
+    """Create a message (SSE streaming, or a JSON body when ``stream: false``)."""
+    if request_data.stream is False:
+        return await service.create_message_non_streaming(request_data)
     return service.create_message(request_data)
 
 

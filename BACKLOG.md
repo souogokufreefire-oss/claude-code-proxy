@@ -22,9 +22,9 @@ Priority levels: **P0** (blocking/security), **P1** (next release), **P2** (near
 
 - [x] **(DONE 2026-07-07)** Add Kimi provider to CHANGELOG (Unreleased section)
 - [x] **(DONE 2026-08-17)** Verify thinking/reasoning support on all 14 providers via smoke tests (commit ef1cf5e; audit-approved)
-- [ ] **P2** Smoke-test Cerebras `reasoning_effort` and `clear_thinking` extra_body
-- [ ] **P2** Verify vLLM thinking token support (upstream vllm#29915 may be resolved)
-- [ ] **P2** Smoke-test Fireworks AI reasoning block filtering (may need ThinkTagParser)
+- [x] **(DONE 2026-08-17)** Cerebras `reasoning_effort` and `clear_thinking` — reasoning_effort existed; added preserved thinking (`clear_thinking=false` on prior-reasoning replay) + 400 retry; live smoke SKIP (no `CEREBRAS_API_KEY`)
+- [x] **(DONE 2026-08-17)** Verify vLLM thinking token support — resolved upstream (vllm-project/vllm#33671); proxy-side thinking passthrough contract test added
+- [x] **(DONE 2026-08-17)** Smoke-test Fireworks AI reasoning block filtering — **SKIP registered**: live-only (no `FIREWORKS_API_KEY`); transport is native Anthropic (no filtering needed)
 
 ## Provider Expansion (Candidates)
 
@@ -44,8 +44,8 @@ Sourced from `UPSTREAM_AUDIT_PLAN.md` backlog section and community demand:
 Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 - [x] **(DONE 2026-08-17)** PR #1002: OpenAI chat reasoning and tool history replay (commit 0723120)
-- [ ] **P2** PR #937: DeepSeek cache usage accounting (issue #904: 10x cost when disk-cache tokens dropped)
-- [ ] **P2** PR #977: stream:false malformed response fix (file layout mismatch, needs targeted repro)
+- [ ] **P2** PR #937: DeepSeek cache usage accounting (issue #904: 10x cost when disk-cache tokens dropped) — **DEFER registered 2026-08-17** (design review pending, default defer)
+- [x] **(DONE 2026-08-17)** PR #977: stream:false malformed response fix — proxy now returns a JSON `MessagesResponse` for `stream:false` (SSE aggregation, failover preserved)
 - [ ] **P2** PR #318: multi-feature (MAX_MESSAGES, CONTEXT_MAX_TOKENS, NIM_PARALLEL_TOOL_CALLS, SSE fix, Claude 4 IDs, tool schema hint) — too broad, needs splitting
 - [ ] **P3** PR #341: API key pooling — already in design review, see UPSTREAM_AUDIT_PLAN.md
 - [ ] **P3** PR #399: model-cache persistence (closed, may be superseded by #318)
@@ -60,8 +60,8 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 ## Context Management
 
 - [x] **(DONE 2026-08-17)** Context Window Manager — Groq payload trimming (`CONTEXT_*` settings, `core/context/context_manager.py`, service-layer integration; audit-approved)
-- [ ] **P2** Context usage visibility — surface token counts in response metadata
-- [ ] **P2** Graceful context overflow handling (degrade instead of 400)
+- [x] **(DONE 2026-08-17)** Context usage visibility — token counts in `CONTEXT_MANAGER` trace, `CONTEXT_TRIMMED` (INFO) and `CONTEXT_OVERFLOW` (WARNING) log lines with budget
+- [x] **(DONE 2026-08-17)** Graceful context overflow handling — explicit overflow detection on protected core; request proceeds (failover covers provider 413), no new trimming policy
 - [ ] **P3** Optional compaction for long Claude Code sessions
 - [ ] **P3** MAX_MESSAGES / CONTEXT_MAX_TOKENS tuning (from upstream PR #318)
 
@@ -87,6 +87,9 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 
 ## Completed
 
+- [x] 2026-08-17: P2 stream:false JSON responses — PR #977 port (SSE→MessagesResponse aggregation, `stream:false` route branch)
+- [x] 2026-08-17: P2 Cerebras preserved thinking — `clear_thinking=false` on prior-reasoning replay + 400 retry (vLLM #29915 verified upstream-resolved)
+- [x] 2026-08-17: P2 Context visibility + graceful overflow — `ContextResult.overflow`/`budget_tokens`, graded log lines (F5)
 - [x] 2026-08-17: P2 OpenAI chat reasoning and tool history replay — upstream PR #1002 port (commit 0723120)
 - [x] 2026-08-17: P1 Thinking/Reasoning smoke tests — 14-provider smoke matrix, thinking emission and reasoning_content round-trip scenarios (commit ef1cf5e)
 - [x] 2026-08-17: Context Window Manager — Groq payload trimming (commits 7f16da1, 50853ad); external Groq TPM 12k limitation registered, not blocking

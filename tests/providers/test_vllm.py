@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.models.anthropic import Message, MessagesRequest
+from api.models.anthropic import Message, MessagesRequest, ThinkingConfig
 from providers.base import ProviderConfig
 
 VLLM_DEFAULT_BASE = "http://localhost:8000/v1"
@@ -66,6 +66,26 @@ def test_build_request_body_passthrough(vllm_config):
     assert body["model"] == "meta-llama/Llama-4-Maverick-17B-128E-Instruct"
     assert body["stream"] is True
     assert body["messages"][0]["role"] == "user"
+
+
+def test_build_request_body_keeps_thinking_passthrough(vllm_config):
+    """Thinking config is forwarded natively (vllm#29915 proxy-side contract).
+
+    vLLM fixed reasoning token emission upstream (vllm-project/vllm#33671);
+    the proxy must keep forwarding the Anthropic ``thinking`` field untouched.
+    """
+    from providers.vllm import VllmProvider
+
+    with patch("httpx.AsyncClient"):
+        provider = VllmProvider(vllm_config)
+    request = MessagesRequest(
+        model="meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+        max_tokens=2000,
+        messages=[Message(role="user", content="Hello")],
+        thinking=ThinkingConfig(type="enabled", budget_tokens=1024),
+    )
+    body = provider._build_request_body(request, thinking_enabled=True)
+    assert body["thinking"] == {"type": "enabled", "budget_tokens": 1024}
 
 
 def test_base_url_override():

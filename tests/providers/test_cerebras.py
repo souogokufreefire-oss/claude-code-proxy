@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import openai
 import pytest
 
 from providers.base import ProviderConfig
@@ -105,3 +106,138 @@ def test_factory_creates_correct_type():
     with patch("providers.openai_compat.AsyncOpenAI"):
         provider = create_provider("cerebras", settings)
     assert isinstance(provider, CerebrasProvider)
+
+
+def test_clear_thinking_false_when_prior_reasoning_replayed(cerebras_config):
+    """Prior-turn reasoning in the body keeps clear_thinking=false (preserved thinking)."""
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    request = MockRequest(
+        model="zai-glm-4.7",
+        messages=[
+            MockMessage("user", "First question"),
+            MockMessage(
+                "assistant",
+                [
+                    {"type": "thinking", "thinking": "prior reasoning"},
+                    {"type": "text", "text": "First answer"},
+                ],
+            ),
+            MockMessage("user", "Follow-up"),
+        ],
+        max_tokens=100,
+    )
+    body = provider._build_request_body(request, thinking_enabled=True)
+    assert body["reasoning_effort"] == "medium"
+    assert body["clear_thinking"] is False
+
+
+def test_clear_thinking_absent_without_prior_reasoning(cerebras_config):
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    request = MockRequest(
+        model="zai-glm-4.7",
+        messages=[MockMessage("user", "Hello")],
+        max_tokens=100,
+    )
+    body = provider._build_request_body(request, thinking_enabled=True)
+    assert "clear_thinking" not in body
+
+
+def test_clear_thinking_absent_when_thinking_disabled(cerebras_config):
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    request = MockRequest(
+        model="zai-glm-4.7",
+        messages=[
+            MockMessage("user", "First"),
+            MockMessage("assistant", "Second"),
+        ],
+        max_tokens=100,
+    )
+    body = provider._build_request_body(request, thinking_enabled=False)
+    assert "clear_thinking" not in body
+    assert "reasoning_effort" not in body
+
+
+def test_retry_drops_clear_thinking_on_400(cerebras_config):
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    body = {
+        "model": "zai-glm-4.7",
+        "reasoning_effort": "medium",
+        "clear_thinking": False,
+    }
+    error = openai.BadRequestError(
+        "clear_thinking is not supported on this model",
+        response=MagicMock(),
+        body=None,
+    )
+    retry = provider._get_retry_request_body(error, body)
+    assert retry is not None
+    assert "clear_thinking" not in retry
+    assert retry["reasoning_effort"] == "medium"
+
+
+def test_retry_drops_reasoning_effort_on_400(cerebras_config):
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    body = {
+        "model": "gpt-oss-120b",
+        "reasoning_effort": "medium",
+        "clear_thinking": False,
+    }
+    error = openai.BadRequestError(
+        "reasoning_effort unsupported",
+        response=MagicMock(),
+        body=None,
+    )
+    retry = provider._get_retry_request_body(error, body)
+    assert retry is not None
+    assert "reasoning_effort" not in retry
+    assert retry["clear_thinking"] is False
+
+
+def test_retry_none_for_unrelated_400(cerebras_config):
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    body = {"model": "gpt-oss-120b"}
+    error = openai.BadRequestError(
+        "model not found",
+        response=MagicMock(),
+        body=None,
+    )
+    assert provider._get_retry_request_body(error, body) is None
+
+
+def test_retry_none_when_field_absent_from_body(cerebras_config):
+    from providers.cerebras import CerebrasProvider
+
+    with patch("providers.openai_compat.AsyncOpenAI"):
+        provider = CerebrasProvider(cerebras_config)
+
+    body = {"model": "zai-glm-4.7"}
+    error = openai.BadRequestError(
+        "clear_thinking is not supported",
+        response=MagicMock(),
+        body=None,
+    )
+    assert provider._get_retry_request_body(error, body) is None

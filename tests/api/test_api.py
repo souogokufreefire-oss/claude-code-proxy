@@ -256,3 +256,86 @@ def test_stop_endpoint_removed_from_proxy_only_runtime(client: TestClient):
     """POST /stop is not part of the proxy-only HTTP surface."""
     response = client.post("/stop")
     assert response.status_code == 404
+
+
+async def _rich_sse_stream(*args, **kwargs):
+    """Async generator emitting a complete Anthropic-style SSE response."""
+    _stream_response_calls.append((args, kwargs))
+    yield (
+        'event: message_start\ndata: {"type": "message_start", "message": '
+        '{"id": "msg_ns_1", "type": "message", "role": "assistant", '
+        '"content": [], "model": "claude-3-sonnet", "stop_reason": null, '
+        '"stop_sequence": null, "usage": {"input_tokens": 7, "output_tokens": 0}}}\n\n'
+    )
+    yield (
+        'event: content_block_start\ndata: {"type": "content_block_start", '
+        '"index": 0, "content_block": {"type": "text", "text": ""}}\n\n'
+    )
+    yield (
+        'event: content_block_delta\ndata: {"type": "content_block_delta", '
+        '"index": 0, "delta": {"type": "text_delta", "text": "Hello non-streaming"}}\n\n'
+    )
+    yield 'event: content_block_stop\ndata: {"type": "content_block_stop", "index": 0}\n\n'
+    yield (
+        'event: message_delta\ndata: {"type": "message_delta", "delta": '
+        '{"stop_reason": "end_turn", "stop_sequence": null}, '
+        '"usage": {"input_tokens": 7, "output_tokens": 19}}\n\n'
+    )
+    yield 'event: message_stop\ndata: {"type": "message_stop"}\n\n'
+
+
+def _non_streaming_payload() -> dict:
+    return {
+        "model": "test",
+        "messages": [{"role": "user", "content": "Hi"}],
+        "max_tokens": 10,
+        "stream": False,
+    }
+
+
+def test_create_message_non_streaming_returns_json(client: TestClient):
+    """stream:false must return a JSON MessagesResponse, not SSE (PR #977)."""
+    mock_provider.stream_response = _rich_sse_stream
+    try:
+        response = client.post("/v1/messages", json=_non_streaming_payload())
+    finally:
+        mock_provider.stream_response = _mock_stream_response
+
+    assert response.status_code == 200
+    assert "application/json" in response.headers.get("content-type", "")
+    data = response.json()
+    assert data["type"] == "message"
+    assert data["id"] == "msg_ns_1"
+    assert data["content"][0]["text"] == "Hello non-streaming"
+    assert data["usage"]["input_tokens"] == 7
+    assert data["usage"]["output_tokens"] == 19
+    assert data["stop_reason"] == "end_turn"
+
+
+def test_create_message_default_stream_stays_sse(client: TestClient):
+    """Clients that omit ``stream`` keep the existing SSE behavior."""
+    payload = _non_streaming_payload()
+    payload.pop("stream")
+    response = client.post("/v1/messages", json=payload)
+    assert "text/event-stream" in response.headers.get("content-type", "")
+
+
+def test_create_message_non_streaming_error_event(client: TestClient):
+    """A mid-stream ``event: error`` maps to a JSON provider error."""
+
+    async def _error_stream(*args, **kwargs):
+        yield 'event: message_start\ndata: {"type": "message_start", "message": {}}\n\n'
+        yield (
+            'event: error\ndata: {"type": "error", "error": '
+            '{"type": "api_error", "message": "upstream broke"}}\n\n'
+        )
+
+    mock_provider.stream_response = _error_stream
+    try:
+        response = client.post("/v1/messages", json=_non_streaming_payload())
+    finally:
+        mock_provider.stream_response = _mock_stream_response
+
+    assert response.status_code == 502
+    assert response.json()["error"]["type"] == "api_error"
+    assert response.json()["error"]["message"] == "upstream broke"

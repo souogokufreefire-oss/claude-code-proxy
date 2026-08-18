@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import traceback
 import uuid
-from collections.abc import AsyncIterator, Callable
-from typing import Any
+from collections.abc import AsyncIterable, AsyncIterator, Callable
+from typing import Any, Literal, cast
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
@@ -34,7 +34,7 @@ from providers.exceptions import (
 
 from .model_router import ModelRouter
 from .models.anthropic import MessagesRequest, TokenCountRequest
-from .models.responses import MessagesResponse, TokenCountResponse
+from .models.responses import MessagesResponse, TokenCountResponse, Usage
 from .optimization_handlers import try_optimizations
 from .web_tools.egress import WebFetchEgressPolicy
 from .web_tools.request import (
@@ -170,6 +170,178 @@ async def _messages_response_to_sse_stream(
         },
     )
     yield _event("message_stop", {"type": "message_stop"})
+
+
+def _parse_sse_frame(frame: str) -> tuple[str, dict] | None:
+    """Parse one ``event: X\\ndata: {...}\\n\\n`` frame into (event, data)."""
+    lines = [ln for ln in frame.splitlines() if ln]
+    event_type: str | None = None
+    data_lines: list[str] = []
+    for ln in lines:
+        if ln.startswith("event:"):
+            event_type = ln[len("event:") :].strip()
+        elif ln.startswith("data:"):
+            data_lines.append(ln[len("data:") :].strip())
+    if event_type is None or not data_lines:
+        return None
+    try:
+        payload = json.loads("\n".join(data_lines))
+    except json.JSONDecodeError:
+        return None
+    return event_type, payload
+
+
+class SSEMessagesResponseBuilder:
+    """Aggregate Anthropic-style SSE events into a single :class:`MessagesResponse`.
+
+    Used for non-streaming clients (``stream: false``) which expect a JSON
+    message body instead of ``text/event-stream`` (PR #977).
+    """
+
+    def __init__(self) -> None:
+        self.message_id: str | None = None
+        self.model: str | None = None
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.cache_creation_input_tokens = 0
+        self.cache_read_input_tokens = 0
+        self.stop_reason: str | None = None
+        self.stop_sequence: str | None = None
+        self.blocks: dict[int, dict[str, Any]] = {}
+
+    def feed(self, chunk: str) -> None:
+        """Consume one SSE chunk (may hold several frames)."""
+        for frame in chunk.split("\n\n"):
+            parsed = _parse_sse_frame(frame)
+            if parsed is None:
+                continue
+            event_type, data = parsed
+            if event_type == "message_start":
+                message = data.get("message", {})
+                self.message_id = message.get("id") or self.message_id
+                self.model = message.get("model") or self.model
+                usage = message.get("usage") or {}
+                self.input_tokens = _usage_int(
+                    usage.get("input_tokens"), self.input_tokens
+                )
+                self.cache_creation_input_tokens = _usage_int(
+                    usage.get("cache_creation_input_tokens"),
+                    self.cache_creation_input_tokens,
+                )
+                self.cache_read_input_tokens = _usage_int(
+                    usage.get("cache_read_input_tokens"),
+                    self.cache_read_input_tokens,
+                )
+            elif event_type == "content_block_start":
+                index = data.get("index", 0)
+                block = dict(data.get("content_block") or {})
+                self.blocks[index] = block
+            elif event_type == "content_block_delta":
+                index = data.get("index", 0)
+                block = self.blocks.get(index)
+                if block is None:
+                    continue
+                delta = data.get("delta") or {}
+                delta_type = delta.get("type", "")
+                if delta_type in ("text_delta", "thinking_delta"):
+                    block["text"] = block.get("text", "") + str(
+                        delta.get("text") or delta.get("thinking") or ""
+                    )
+                elif delta_type == "input_json_delta":
+                    block["partial_json"] = block.get("partial_json", "") + str(
+                        delta.get("partial_json") or ""
+                    )
+                elif delta_type == "signature_delta":
+                    block["signature"] = delta.get("signature") or block.get(
+                        "signature"
+                    )
+            elif event_type == "message_delta":
+                delta = data.get("delta") or {}
+                if delta.get("stop_reason") is not None:
+                    self.stop_reason = str(delta.get("stop_reason"))
+                if delta.get("stop_sequence") is not None:
+                    self.stop_sequence = str(delta.get("stop_sequence"))
+                usage = data.get("usage") or {}
+                self.output_tokens = _usage_int(
+                    usage.get("output_tokens"), self.output_tokens
+                )
+            elif event_type == "error":
+                error = data.get("error") or {}
+                raise ProviderError(
+                    str(error.get("message") or "Upstream streaming error"),
+                    status_code=502,
+                    error_type=str(error.get("type") or "api_error"),
+                )
+
+    def build(self) -> MessagesResponse:
+        """Assemble the final response from the consumed events."""
+        content: list[Any] = []
+        for index in sorted(self.blocks):
+            block = self.blocks[index]
+            block_type = block.get("type")
+            if block_type == "text":
+                content.append({"type": "text", "text": str(block.get("text") or "")})
+            elif block_type == "thinking":
+                content.append(
+                    {
+                        "type": "thinking",
+                        "thinking": str(block.get("text") or ""),
+                        "signature": block.get("signature"),
+                    }
+                )
+            elif block_type == "tool_use":
+                input_json = block.get("partial_json") or ""
+                parsed_input: Any = {}
+                if input_json:
+                    try:
+                        parsed_input = json.loads(input_json)
+                    except json.JSONDecodeError:
+                        parsed_input = {}
+                content.append(
+                    {
+                        "type": "tool_use",
+                        "id": str(block.get("id") or ""),
+                        "name": str(block.get("name") or ""),
+                        "input": parsed_input,
+                    }
+                )
+            else:
+                content.append(block)
+        return MessagesResponse(
+            id=self.message_id or "msg_unknown",
+            model=self.model or "",
+            content=content,
+            stop_reason=cast(
+                Literal["end_turn", "max_tokens", "stop_sequence", "tool_use"] | None,
+                self.stop_reason,
+            ),
+            stop_sequence=self.stop_sequence,
+            usage=Usage(
+                input_tokens=self.input_tokens,
+                output_tokens=self.output_tokens,
+                cache_creation_input_tokens=self.cache_creation_input_tokens,
+                cache_read_input_tokens=self.cache_read_input_tokens,
+            ),
+        )
+
+
+def _usage_int(value: object, fallback: int) -> int:
+    """Coerce streamed usage counters to int; non-integers keep the fallback."""
+    return value if isinstance(value, int) else fallback
+
+
+async def _aggregate_sse_to_messages_response(
+    stream: AsyncIterable[Any],
+) -> MessagesResponse:
+    """Consume an Anthropic-style SSE stream into a single :class:`MessagesResponse`."""
+    builder = SSEMessagesResponseBuilder()
+    async for chunk in stream:
+        if isinstance(chunk, (bytes, memoryview)):
+            text = bytes(chunk).decode("utf-8", errors="replace")
+        else:
+            text = str(chunk)
+        builder.feed(text)
+    return builder.build()
 
 
 class ClaudeProxyService:
@@ -342,6 +514,17 @@ class ClaudeProxyService:
                 status_code=_http_status_for_unexpected_service_exception(e),
                 detail=get_user_facing_error_message(e),
             ) from e
+
+    async def create_message_non_streaming(
+        self, request_data: MessagesRequest
+    ) -> MessagesResponse:
+        """Create a single JSON :class:`MessagesResponse` for ``stream: false``.
+
+        Runs the same pipeline as :meth:`create_message` (optimizations, CWM,
+        failover) and aggregates the SSE stream into one response body.
+        """
+        response = self.create_message(request_data)
+        return await _aggregate_sse_to_messages_response(response.body_iterator)
 
     async def _stream_with_provider_failover(
         self,
