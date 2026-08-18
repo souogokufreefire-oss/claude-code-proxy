@@ -17,6 +17,7 @@ from config.settings import Settings
 from core.anthropic import get_token_count, get_user_facing_error_message
 from core.anthropic.sse import ANTHROPIC_SSE_RESPONSE_HEADERS
 from core.context.context_manager import ContextManager
+from core.metrics import MetricsRegistry, OutputTokenTracker, metrics_registry
 from providers.base import (
     BaseProvider,
     begin_primary_failover,
@@ -180,13 +181,15 @@ class ClaudeProxyService:
         provider_getter: ProviderGetter,
         model_router: ModelRouter | None = None,
         token_counter: TokenCounter = get_token_count,
+        metrics_registry_: MetricsRegistry | None = None,
     ):
         self._settings = settings
         self._provider_getter = provider_getter
         self._model_router = model_router or ModelRouter(settings)
         self._token_counter = token_counter
+        self._metrics = metrics_registry_ or metrics_registry
 
-    def create_message(self, request_data: MessagesRequest) -> object:
+    def create_message(self, request_data: MessagesRequest) -> StreamingResponse:
         """Create a message response or streaming response."""
         try:
             _require_non_empty_messages(request_data.messages)
@@ -284,6 +287,7 @@ class ClaudeProxyService:
             input_tokens = self._token_counter(
                 routed_request.messages, routed_request.system, routed_request.tools
             )
+            self._metrics.record_request(provider_id, input_tokens)
             primary_stream = provider.stream_response(
                 routed_request,
                 input_tokens=input_tokens,
@@ -328,6 +332,7 @@ class ClaudeProxyService:
         first_event: str | None = None
         signal: ProviderFailoverSignal | None = None
         token = begin_primary_failover(provider_id)
+        token_tracker = OutputTokenTracker()
 
         try:
             try:
@@ -335,6 +340,7 @@ class ClaudeProxyService:
                     # Hold only the very first SSE event. Both transports emit
                     # message_start before the upstream result is known.
                     # If a failover signal occurs, this event is discarded.
+                    token_tracker.feed(event)
                     if first_event is None:
                         first_event = event
                         continue
@@ -348,17 +354,25 @@ class ClaudeProxyService:
 
             except ProviderFailoverSignal as exc:
                 signal = exc
+            except Exception:
+                self._metrics.record_stream_result(provider_id, error=True)
+                raise
         finally:
             end_primary_failover(token)
 
         if signal is None:
+            self._metrics.record_stream_result(
+                provider_id, output_tokens=token_tracker.output_tokens
+            )
             return
 
+        self._metrics.record_failover(provider_id)
         secondary_provider_id = fallback_provider_for(provider_id)
         secondary_model = fallback_model_for(provider_id)
-
         if secondary_provider_id is None or secondary_model is None:
             raise signal.cause
+
+        self._metrics.record_request(secondary_provider_id, input_tokens)
 
         logger.warning(
             "PROVIDER_FAILOVER: primary={} secondary={} status={} request_id={}",
@@ -377,13 +391,23 @@ class ClaudeProxyService:
             thinking_enabled=thinking_enabled,
         )
 
-        async for event in secondary_provider.stream_response(
-            secondary_request,
-            input_tokens=input_tokens,
-            request_id=request_id,
-            thinking_enabled=thinking_enabled,
-        ):
-            yield event
+        secondary_token_tracker = OutputTokenTracker()
+        try:
+            async for event in secondary_provider.stream_response(
+                secondary_request,
+                input_tokens=input_tokens,
+                request_id=request_id,
+                thinking_enabled=thinking_enabled,
+            ):
+                secondary_token_tracker.feed(event)
+                yield event
+        except Exception:
+            self._metrics.record_stream_result(secondary_provider_id, error=True)
+            raise
+        self._metrics.record_stream_result(
+            secondary_provider_id,
+            output_tokens=secondary_token_tracker.output_tokens,
+        )
 
     def count_tokens(self, request_data: TokenCountRequest) -> TokenCountResponse:
         """Count tokens for a request after applying configured model routing."""

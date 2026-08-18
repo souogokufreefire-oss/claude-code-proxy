@@ -20,6 +20,7 @@ def _app_settings(**kwargs):
         "model_opus": None,
         "model_sonnet": "open_router/anthropic/claude-sonnet-4.5",
         "model_haiku": None,
+        "metrics_log_interval_seconds": 0,
         **kwargs,
     }
     return SimpleNamespace(**data)

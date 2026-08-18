@@ -327,6 +327,10 @@ class Settings(BaseSettings):
     log_api_error_tracebacks: bool = Field(
         default=False, validation_alias="LOG_API_ERROR_TRACEBACKS"
     )
+    # Seconds between per-provider metrics summary logs; 0 disables periodic logs.
+    metrics_log_interval_seconds: int = Field(
+        default=0, validation_alias="METRICS_LOG_INTERVAL_SECONDS"
+    )
     # ==================== NIM Settings ====================
     nim: NimSettings = Field(default_factory=NimSettings)
 
