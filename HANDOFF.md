@@ -20,7 +20,7 @@ CLI, VS Code, and JetBrains ACP traffic to upstream model providers. It keeps
 Claude Code's client-side protocol stable while letting the operator choose
 where inference actually happens.
 
-- **Version:** 2.2.0
+- **Version:** 2.3.0
 - **Python:** 3.14+ (enforced)
 - **Package manager:** uv (astral)
 - **Framework:** FastAPI + httpx + openai SDK

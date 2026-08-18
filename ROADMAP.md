@@ -5,7 +5,7 @@
 Directional guide for `claude-code-proxy`. Items here are intentions, not
 commitments. For tracked work items, see `BACKLOG.md`.
 
-## Current State (v2.2.0)
+## Current State (v2.3.0)
 
 Stable, secure, fully functional proxy with 14 provider backends:
 
