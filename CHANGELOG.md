@@ -44,6 +44,29 @@ Context Window Manager release.
   `reasoning_content` keys are dropped (unsupported by Groq).
 - Unit tests (`tests/core/context/`) and service-level integration tests
   (`tests/api/test_context_manager_integration.py`) — 1013 tests total.
+- Per-provider metrics registry (`core/metrics.py`): requests, errors,
+  failovers and token counts are aggregated per provider with thread-safe
+  snapshots; an opt-in periodic summary (`METRICS_LOG_INTERVAL_SECONDS`, default
+  0 = disabled) logs a JSON line, and the shutdown path always logs the final
+  summary. Output tokens are tracked from the last `message_delta` usage frame.
+  Never touches payload contents.
+- Context usage visibility: `ContextResult` now reports `budget_tokens` and
+  `overflow`; the service logs `CONTEXT_TRIMMED` (INFO) with before/after token
+  counts when trimming applies, and `CONTEXT_OVERFLOW` (WARNING) when the
+  protected core alone exceeds the budget — the request then proceeds untouched
+  and provider failover covers the upstream rejection. No new trimming policy.
+- `stream: false` support (upstream PR #977): non-streaming clients now receive
+  a JSON `MessagesResponse` body instead of `text/event-stream`. The same
+  pipeline (optimizations, Context Window Manager, provider failover) runs and
+  the SSE stream is aggregated into a single response (`SSEMessagesResponseBuilder`),
+  preserving text/thinking/tool_use blocks, usage counters and stop reasons.
+  Mid-stream `event: error` frames map to JSON provider errors.
+- Cerebras preserved thinking: `clear_thinking=false` is sent when the
+  conversation replays prior reasoning (multi-turn agentic flows), and the
+  400-retry path now drops either `reasoning_effort` or `clear_thinking` when
+  Cerebras rejects them (unsupported models).
+- vLLM thinking contract test: the Anthropic `thinking` field is forwarded
+  untouched (upstream reasoning emission fixed in vllm-project/vllm#33671).
 
 ### Known Limitation
 
