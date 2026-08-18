@@ -80,14 +80,13 @@ Context Window Manager release.
 
 ### CI Status
 
-- GitHub Actions execution is **NÃO VERIFICADO**: the workflow
-  (`.github/workflows/tests.yml`) exists and is configured (`on: push` /
-  `pull_request` to main/master), but no workflow run has been observed in
-  this repository. The exact cause of the missing runs was not determined
-  via API; the repository is a fork, so fork-level or account-level
-  restrictions remain a hypothesis, not a confirmed fact. The workflow was
-  not altered to mask or work around the issue. Local validation (format,
-  lint, type, 1013 tests) is green and unaffected.
+- GitHub Actions execution is **VERIFIED — GREEN**: Run `32090215141`
+  (workflow `CI`, commit `bef472d`, event `push` on `main`) completed with
+  `conclusion=success` — all steps passed (`ruff format --check`, `ruff
+  check`, `ty check`, `pytest`: **1013 passed**, 4 warnings, known
+  Starlette httpx2 deprecation, non-blocking). The workflow
+  (`.github/workflows/tests.yml`) runs on push/PR to main/master only;
+  pushing the `v2.3.0` tag alone is not a configured trigger.
 
 ## 2.2.0 - 2026-07-08
 

@@ -668,9 +668,10 @@ uv run pytest
 ```
 
 Run them in that order before pushing. The CI workflow
-(`.github/workflows/tests.yml`) enforces the same checks. GitHub Actions
-execution is currently **NÃO VERIFICADO** in this repository: no workflow
-run has been observed; local validation remains green (see `HANDOFF.md`).
+(`.github/workflows/tests.yml`) enforces the same checks. GitHub Actions is
+**VERIFIED — GREEN**: Run `32090215141` (commit `bef472d`) passed with
+`conclusion=success` — 1013 tests, ruff format/check and ty check green
+(see `HANDOFF.md`).
 
 ### Package Scripts
 

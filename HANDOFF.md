@@ -134,18 +134,18 @@ Actions are pinned to commit SHAs (not tags) for supply-chain safety.
 
 ### GitHub Actions Status
 
-**NÃO VERIFICADO.** The workflow exists and is configured (`on: push` /
-`pull_request` to main/master), but **no workflow run has ever been observed**
-in this repository (0 runs). The exact cause of the missing runs was **not
-determined via API**. The repository is a fork, so fork-specific Actions
-execution restrictions remain a **hypothesis, not a confirmed fact**; an
-account-level restriction is also possible. The workflow was **not altered**
-to mask or work around the issue. Note: pushing the `v2.3.0` tag alone is not
-a configured trigger for this workflow.
+**VERIFICADO — GREEN.** GitHub Actions is operational and green in this
+repository. Evidence — Run `32090215141` (workflow `CI`, event `push` on
+`main`, commit `bef472d`): conclusion `success`; all job steps passed
+(`ruff format --check`, `ruff check`, `ty check`, `pytest`); **1013 tests
+passed** (4 warnings — known Starlette httpx2 deprecation, non-blocking).
+Note: pushing the `v2.3.0` tag alone is not a configured trigger for this
+workflow (`on: push`/`pull_request` on main/master only); the green run
+above was triggered by a push to `main`.
 
-This does not invalidate the local validation (format, lint, type, 1013
-tests — all green) nor the code audit, but "GitHub CI green" cannot be
-claimed as objective evidence until a real run is observed.
+The local validation (format, lint, type, 1013 tests) and the GitHub CI
+evidence are consistent: the same checks passed both locally and in the
+verified run.
 
 Dependabot is configured for weekly uv and github-actions updates
 (`.github/dependabot.yml`). Minor/patch updates are grouped and auto-merge

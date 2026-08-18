@@ -17,7 +17,7 @@ Priority levels: **P0** (blocking/security), **P1** (next release), **P2** (near
 - [x] **(DONE 2026-07-08)** Enable dependabot auto-merge (repo setting flipped via API; minor/patch updates auto-merge after CI)
 - [x] **(DONE 2026-07-08)** Cap dependabot PR queue size (uv: 5, github-actions: 3) to prevent future pileup
 - [x] **(DONE 2026-08-17)** Pin remaining GitHub Actions to commit SHAs — verified: `actions/checkout@9c091bb` and `astral-sh/setup-uv@f98e069` pinned in `.github/workflows/tests.yml`
-- [ ] **P1** GitHub Actions execution — **NÃO VERIFICADO**: 0 workflow runs observed in this repository despite valid, active workflow and repo-level permissions enabled; exact cause not determined via API (fork-level/account-level restriction hypothesis only); requires UI/settings review (`/settings/actions`); local validation (1013 tests, ruff, ty) stays green
+- [x] **(DONE 2026-08-17)** GitHub Actions execution — **VERIFIED — GREEN**: Run `32090215141` (commit `bef472d`, push to main) completed with conclusion=success; 1013 tests passed; ruff format/check and ty check green
 
 ## Provider Improvements
 
@@ -89,6 +89,7 @@ Tracked in `UPSTREAM_AUDIT_PLAN.md`. Candidates needing local design review:
 ## Completed
 
 - [x] 2026-08-17: P2 stream:false JSON responses — PR #977 port (SSE→MessagesResponse aggregation, `stream:false` route branch)
+- [x] 2026-08-17: GitHub Actions execution verified GREEN — Run `32090215141` (commit `bef472d`, push to main) conclusion=success; 1013 tests passed; ruff format/check + ty green
 - [x] 2026-08-17: P2 Cerebras preserved thinking — `clear_thinking=false` on prior-reasoning replay + 400 retry (vLLM #29915 verified upstream-resolved)
 - [x] 2026-08-17: P2 Context visibility + graceful overflow — `ContextResult.overflow`/`budget_tokens`, graded log lines (F5)
 - [x] 2026-08-17: P2 OpenAI chat reasoning and tool history replay — upstream PR #1002 port (commit 0723120)
